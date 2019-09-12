@@ -4,7 +4,9 @@ SyntaxEditor Code Snippet
 # Maya Script Loader
 ## (Work in progress)
 script loader for maya (tested in maya2018)
+
 ![enter image description here](https://i.imgur.com/YME6MdD.png)
+
 Goal: to install scripts to user's maya from network drive
 
 Features:
@@ -18,4 +20,5 @@ Features:
 
 * Check if script is up to date - mark as orange if outdated
 * Integrate sentry to all installable scripts :) 
+
 ![enter image description here](https://i.imgur.com/HmsktUq.png)

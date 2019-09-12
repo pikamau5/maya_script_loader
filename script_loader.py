@@ -107,31 +107,24 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items
             return
-        if installed and not outdated:
+
+        if installed:
             RunAction = QtWidgets.QAction("Run", self)
-            RunAction.triggered.connect(lambda: self.uninstall_local())
+            RunAction.triggered.connect(lambda: self.launch_script(self.get_selected_item()))
             self.menu.addAction(RunAction)
 
-            UninstallAction = QtWidgets.QAction("Uninstall", self)
-            UninstallAction.triggered.connect(lambda: self.uninstall_local())
-            self.menu.addAction(UninstallAction)
-
-
-
-        elif outdated and installed:
-            RunAction = QtWidgets.QAction("Run", self)
-            RunAction.triggered.connect(lambda: self.uninstall_local())
-            self.menu.addAction(RunAction)
-
+        if installed and outdated:
             installAction = QtWidgets.QAction("Update", self)
             installAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
             self.menu.addAction(installAction)
+
+        if installed:
             UninstallAction = QtWidgets.QAction("Uninstall", self)
             UninstallAction.triggered.connect(lambda: self.uninstall_local())
             self.menu.addAction(UninstallAction)
-        elif not installed:
+        else:
             UninstallAction = QtWidgets.QAction("Install", self)
-            UninstallAction.triggered.connect(lambda: self.uninstall_local())
+            UninstallAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
             self.menu.addAction(UninstallAction)
         self.menu.popup(QtGui.QCursor.pos())
 

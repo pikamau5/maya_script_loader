@@ -8,8 +8,6 @@ reload(script_loader_ui)
 reload(script_loader)
 
 
-TODO: make unique names for list objects (and put in dictionary)
-TODO: make unique context menus for items depending on installed state etc
 TODO: insert sentry
 TODO: add Non Editable ? checkboxes
 TODO: Add pip_test contents to installation def
@@ -17,18 +15,21 @@ TODO: Add pip_test contents to installation def
     * change install to copy FOLDER
     * update folder paths to db
     * figure out how to run "main" function..?
+
+TODO: Install dependencies!
 '''
 
 from script_loader_ui import Ui_Form
 import sqlite3 as lite
-import imp
 from PySide2 import QtWidgets, QtCore, QtGui
 import os
 import shutil
-import pip
-from distutils.dir_util import copy_tree
 import imp
 from distutils.version import LooseVersion
+import script_loader_install_dependencies
+import sys
+import ctypes
+import subprocess
 
 class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     """
@@ -172,12 +173,27 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         try:
             last_folder = str(selected_item).split("/")
             last_folder = last_folder[-1]
+            new_folder = maya_script_folder + "/" + last_folder
             # copy the folder
-            shutil.copytree(selected_item, maya_script_folder + "/" + last_folder)
+            shutil.copytree(selected_item, new_folder)
             # change text color to be white
             self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
             self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
             print "Installed " + last_folder + " success!"
+            # install dependencies
+            maya_exe = sys.executable
+            maya_exe = maya_exe.split(".")
+            maya_exe = maya_exe[0] + "py.exe"
+            maya_exe = maya_exe.replace("\\","/")
+            dependencies_script = "script_loader_install_dependencies.py"
+            command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
+            #command = "\"" + str(maya_exe) + "\" " + "hello.py"
+
+            print command
+            os.system('"' + command + "& pause" + '"')
+
+            print "Installed dependencies."
+
         except:
             print "Failed to install " + last_folder
 

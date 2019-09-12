@@ -57,14 +57,17 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         # for right clicking tree widget items
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.treeWidget.customContextMenuRequested.connect(self.contextMenuEvent)
-        #self.treeWidget.items(0)
+        self.treeWidget.customContextMenuRequested.connect(lambda: self.contextMenuEvent(self.check_if_installed(),
+                                                                                         self.get_selected_update_status(),
+                                                                                         self.check_if_selected_is_script_item()))
 
         form.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # Window always on top
 
         # expand tree on start
         self.treeWidget.expandToDepth(0)
         self.update_tree()  # update tree on launch
+
+
 
     def create_brushes(self):
         # color brushes for text colors
@@ -95,37 +98,59 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         return fonts
 
-    def contextMenuEvent(self, event):
+    def contextMenuEvent(self, installed, outdated,is_script_item):
         """
-        Context menu for treewidget items
+        Context menu for treewidget items TODO: link to proper functions
         Args:
             event: context menu event
         """
         self.menu = QtWidgets.QMenu(self)
-        installAction = QtWidgets.QAction("Install", self)
-        installAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
-        self.menu.addAction(installAction)
-        UninstallAction = QtWidgets.QAction("Uninstall", self)
-        UninstallAction.triggered.connect(lambda: self.uninstall_local())
-        self.menu.addAction(UninstallAction)
+        if not is_script_item: # skip category items
+            return
+        if installed and not outdated:
+            RunAction = QtWidgets.QAction("Run", self)
+            RunAction.triggered.connect(lambda: self.uninstall_local())
+            self.menu.addAction(RunAction)
+
+            UninstallAction = QtWidgets.QAction("Uninstall", self)
+            UninstallAction.triggered.connect(lambda: self.uninstall_local())
+            self.menu.addAction(UninstallAction)
+
+        elif outdated and installed:
+            RunAction = QtWidgets.QAction("Run", self)
+            RunAction.triggered.connect(lambda: self.uninstall_local())
+            self.menu.addAction(RunAction)
+
+            installAction = QtWidgets.QAction("Update", self)
+            installAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
+            self.menu.addAction(installAction)
+            UninstallAction = QtWidgets.QAction("Uninstall", self)
+            UninstallAction.triggered.connect(lambda: self.uninstall_local())
+            self.menu.addAction(UninstallAction)
+        elif not installed:
+            UninstallAction = QtWidgets.QAction("Install", self)
+            UninstallAction.triggered.connect(lambda: self.uninstall_local())
+            self.menu.addAction(UninstallAction)
         self.menu.popup(QtGui.QCursor.pos())
 
-    def contextMenuEvent2(self, event):
-        """
-        Context menu for treewidget items
-        Args:
-            event: context menu event
-        """
-        UninstallAction = QtWidgets.QAction("Uninstall", self)
-        UninstallAction.triggered.connect(lambda: self.uninstall_local())
-        self.menu.addAction(UninstallAction)
-        self.menu.popup(QtGui.QCursor.pos())
 
-    def check_if_installed(self, selected_item):
+    def check_if_installed(self):
         """
         checks if scripts in db are installed in current scripts folder
         """
+        db_folder = self.get_selected_item()
+        maya_script_folder = self.get_maya_scripts_folder()
+        print "AAAAAAAAAAAAAAA"
+        print db_folder
+        print maya_script_folder
+        db_folder_split = str(db_folder).split("/")
+        last_folder = db_folder_split[-1]
 
+        target_folder = maya_script_folder + "/" + last_folder
+        if os.path.exists(target_folder):
+            return True
+        else:
+            return False
 
     def get_maya_scripts_folder(self):
         maya_script_folder = os.path.dirname(os.path.realpath(__file__))
@@ -168,6 +193,23 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         form = self
         super(ScriptLoaderUI, self).retranslateUi(form)
 
+    def get_selected_update_status(self):
+        """
+        Get name of selected item
+        Returns: the selected item
+        """
+        b = self.treeWidget.selectedItems()
+        sel_item = b[0].data(0,34)
+        return sel_item
+
+    def check_if_selected_is_script_item(self):
+        """
+        Get name of selected item
+        Returns: the selected item
+        """
+        b = self.treeWidget.selectedItems()
+        sel_item = b[0].data(0,35)
+        return sel_item
 
     def get_selected_item(self):
         """
@@ -226,7 +268,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         for category in categories:
             cat_item = QtWidgets.QTreeWidgetItem(self.treeWidget)
             cat_item.setText(0, category)
-
+            cat_item.setData(0, 35, False)  # script item
             # add entries to categories
             for entry in entries:
                 for item in entry:
@@ -235,6 +277,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             script_item.setText(0, item[1])
                             script_item.setData(0,32, item[2])  # path
                             script_item.setData(0, 33, item[3])  # version
+                            script_item.setData(0, 35, True)  # script item
                             script_item.setForeground(0, self.create_brushes()[1])
 
                             # Check if file already exists
@@ -249,10 +292,16 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                                 if self.check_if_version_outdated(item[2]): # if version is outdated
                                     # set text color orange
                                     script_item.setForeground(0, self.create_brushes()[2])
+                                    script_item.setData(0,34,True) # set true if outdated
                                 else:
                                     # set text color white + bold
+                                    script_item.setData(0, 34, False)
                                     script_item.setForeground(0, self.create_brushes()[0])
                                     script_item.setFont(0, self.create_fonts()[0])
+
+                            # for right clicking tree widget items
+                            #script_item.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+                            #script_item.customContextMenuRequested.connect(self.contextMenuEvent)
 
         self.treeWidget.expandToDepth(0)
 

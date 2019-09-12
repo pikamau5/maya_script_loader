@@ -76,11 +76,11 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         brush_white.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_white)
 
-        brush_gray = QtGui.QBrush(QtGui.QColor(99, 99, 99))
+        brush_gray = QtGui.QBrush(QtGui.QColor(128, 128, 128))
         brush_gray.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_gray)
 
-        brush_orange = QtGui.QBrush(QtGui.QColor(255, 126, 0))
+        brush_orange = QtGui.QBrush(QtGui.QColor(255, 200, 94))
         brush_orange.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_orange)
 
@@ -115,6 +115,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             UninstallAction = QtWidgets.QAction("Uninstall", self)
             UninstallAction.triggered.connect(lambda: self.uninstall_local())
             self.menu.addAction(UninstallAction)
+
+
 
         elif outdated and installed:
             RunAction = QtWidgets.QAction("Run", self)
@@ -293,6 +295,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                                     # set text color orange
                                     script_item.setForeground(0, self.create_brushes()[2])
                                     script_item.setData(0,34,True) # set true if outdated
+
                                 else:
                                     # set text color white + bold
                                     script_item.setData(0, 34, False)

@@ -58,7 +58,7 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Script Loader", None, -1))
-        self.update_btn.setText(QtWidgets.QApplication.translate("Form", "Update database", None, -1))
+        self.update_btn.setText(QtWidgets.QApplication.translate("Form", "Reload database", None, -1))
         self.treeWidget.setSortingEnabled(False)
         self.treeWidget.headerItem().setText(0, QtWidgets.QApplication.translate("Form", "Tools", None,  -1))
         __sortingEnabled = self.treeWidget.isSortingEnabled()

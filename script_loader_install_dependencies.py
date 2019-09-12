@@ -3,6 +3,7 @@ how to
 
 open commandline
 run this script with mayapy
+TODO: check if dependencies are already installed
 '''
 
 import sys

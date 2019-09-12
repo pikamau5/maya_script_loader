@@ -77,6 +77,10 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         brush_gray.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_gray)
 
+        brush_orange = QtGui.QBrush(QtGui.QColor(255, 126, 0))
+        brush_orange.setStyle(QtCore.Qt.NoBrush)
+        brushes.append(brush_orange)
+
         return brushes
 
     def create_fonts(self):
@@ -174,7 +178,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         sel_item = b[0].data(0,32)
         return sel_item
 
-    def compare_version(self, script_path):
+    def check_if_version_outdated(self, script_path):
+        version_outdated = False
         maya_folder = self.get_maya_scripts_folder()
         script_folder_name = str(script_path).split("/")
         final_folder = maya_folder + "/" + script_folder_name[-1]
@@ -182,22 +187,26 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         version_file_local = final_folder + "/_version.py"
         version_file_db = script_path + "/_version.py"
         print version_file_local
-        print version_file_db
+        print version_file_db # TODO figure out why the version numbers are the same!
 
         try:
             foo = imp.load_source('module.name', version_file_local)
-            bar = imp.load_source('module.name', version_file_db)
-
             local_version = str(foo.__version__)
+            bar = imp.load_source('module.name', version_file_db)
             db_version = str(bar.__version__)
 
-            print "Version for " + final_folder + " - db: " + db_version + " local: " + local_version
+
             if LooseVersion(db_version) > LooseVersion(local_version):
-                print "script is outdated!"
+                print "script is outdated: "
+                print "Version for " + final_folder + " - db: " + db_version + " local: " + local_version
+                version_outdated = True
+            else:
+                version_outdated = False
 
         except:
             print "could not find version number in " + version_file_local
 
+        return version_outdated
 
 
 
@@ -237,10 +246,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             # if folder exists
                             if os.path.exists(target_folder):
                                 # get versions
-                                self.compare_version(item[2])
-                                # update brushes
-                                script_item.setForeground(0, self.create_brushes()[0])
-                                script_item.setFont(0, self.create_fonts()[0])
+                                if self.check_if_version_outdated(item[2]): # if version is outdated
+                                    # set text color orange
+                                    script_item.setForeground(0, self.create_brushes()[2])
+                                else:
+                                    # set text color white + bold
+                                    script_item.setForeground(0, self.create_brushes()[0])
+                                    script_item.setFont(0, self.create_fonts()[0])
 
         self.treeWidget.expandToDepth(0)
 

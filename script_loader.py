@@ -224,7 +224,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
 class ScriptLoaderLogic():
 
-    con = lite.connect('C:/my_projects/scripts_source_dummy/scripts.db')  # path to database
+    con = lite.connect('C:/my_projects/script_loader/scripts.db')  # path to database
 
     def get_database(self):
         """

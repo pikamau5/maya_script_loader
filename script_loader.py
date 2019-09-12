@@ -100,7 +100,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
     def contextMenuEvent(self, installed, outdated,is_script_item):
         """
-        Context menu for treewidget items TODO: link to proper functions
+        Context menu for treewidget items
         Args:
             event: context menu event
         """
@@ -120,7 +120,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         if installed:
             UninstallAction = QtWidgets.QAction("Uninstall", self)
-            UninstallAction.triggered.connect(lambda: self.uninstall_local())
+            UninstallAction.triggered.connect(lambda: self.uninstall_local(self.get_selected_item()))
             self.menu.addAction(UninstallAction)
         else:
             UninstallAction = QtWidgets.QAction("Install", self)
@@ -168,19 +168,27 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         """
 
         maya_script_folder = self.get_maya_scripts_folder()
+        last_folder = ""
         try:
             last_folder = str(selected_item).split("/")
             last_folder = last_folder[-1]
-            copy_tree(selected_item, maya_script_folder + "/" + last_folder)
-            # TODO change color to white
+            # copy the folder
+            shutil.copytree(selected_item, maya_script_folder + "/" + last_folder)
+            # change text color to be white
             self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
             self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
             print "Installed " + last_folder + " success!"
         except:
             print "Failed to install " + last_folder
 
-    def uninstall_local(self):
-        print "Uninstalling"
+    def uninstall_local(self, selected_item):
+        maya_scripts_folder = self.get_maya_scripts_folder()
+        last_folder = str(selected_item).split("/")
+        last_folder = last_folder[-1]
+        if len(last_folder) > 2:
+            target_folder = maya_scripts_folder + "/" + last_folder
+            print "Uninstalling " + target_folder
+            shutil.rmtree(target_folder)
         self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
         self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
 

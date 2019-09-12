@@ -27,6 +27,8 @@ import os
 import shutil
 import pip
 from distutils.dir_util import copy_tree
+import imp
+from distutils.version import LooseVersion
 
 class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     """
@@ -62,6 +64,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         # expand tree on start
         self.treeWidget.expandToDepth(0)
+        self.update_tree()  # update tree on launch
 
     def create_brushes(self):
         # color brushes for text colors
@@ -142,16 +145,15 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         maya_script_folder = self.get_maya_scripts_folder()
         try:
-            print selected_item
-            print maya_script_folder
             last_folder = str(selected_item).split("/")
             last_folder = last_folder[-1]
             copy_tree(selected_item, maya_script_folder + "/" + last_folder)
             # TODO change color to white
             self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
             self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
+            print "Installed " + last_folder + " success!"
         except:
-            print "failed to install"
+            print "Failed to install " + last_folder
 
     def uninstall_local(self):
         print "Uninstalling"
@@ -161,7 +163,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     def retranslateUi(self, Form):
         form = self
         super(ScriptLoaderUI, self).retranslateUi(form)
-        self.update_tree()  # update tree on launch
+
 
     def get_selected_item(self):
         """
@@ -171,6 +173,35 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         b = self.treeWidget.selectedItems()
         sel_item = b[0].data(0,32)
         return sel_item
+
+    def compare_version(self, script_path):
+        maya_folder = self.get_maya_scripts_folder()
+        script_folder_name = str(script_path).split("/")
+        final_folder = maya_folder + "/" + script_folder_name[-1]
+
+        version_file_local = final_folder + "/_version.py"
+        version_file_db = script_path + "/_version.py"
+        print version_file_local
+        print version_file_db
+
+        try:
+            foo = imp.load_source('module.name', version_file_local)
+            bar = imp.load_source('module.name', version_file_db)
+
+            local_version = str(foo.__version__)
+            db_version = str(bar.__version__)
+
+            print "Version for " + final_folder + " - db: " + db_version + " local: " + local_version
+            if LooseVersion(db_version) > LooseVersion(local_version):
+                print "script is outdated!"
+
+        except:
+            print "could not find version number in " + version_file_local
+
+
+
+
+
 
     def update_tree(self):
         """
@@ -191,19 +222,23 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             for entry in entries:
                 for item in entry:
                         if item[4] == category:
-                            print category + " is same. create!"
                             script_item = QtWidgets.QTreeWidgetItem(cat_item)
                             script_item.setText(0, item[1])
-                            script_item.setData(0,32, item[2])  # first free data slot
-                            script_item.setData(0, 32, item[2])  # first free data slot
+                            script_item.setData(0,32, item[2])  # path
+                            script_item.setData(0, 33, item[3])  # version
                             script_item.setForeground(0, self.create_brushes()[1])
 
                             # Check if file already exists
                             maya_script_folder = self.get_maya_scripts_folder()
                             split_string = str(item[2]).split("/")
                             script_name = split_string[-1]
-                            print maya_script_folder + "/" + script_name
-                            if os.path.exists(maya_script_folder + "/" + script_name):
+
+                            target_folder = maya_script_folder + "/" + script_name
+                            # if folder exists
+                            if os.path.exists(target_folder):
+                                # get versions
+                                self.compare_version(item[2])
+                                # update brushes
                                 script_item.setForeground(0, self.create_brushes()[0])
                                 script_item.setFont(0, self.create_fonts()[0])
 

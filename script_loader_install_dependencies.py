@@ -35,7 +35,6 @@ def install_dependencies(script_folder):
     if is_admin():
         # Code of your program here
         pip_auto_install(script_folder)
-        print "poop"
     else:
         # Re-run the program with admin rights
         time.sleep(5)
@@ -44,4 +43,3 @@ def install_dependencies(script_folder):
     is_admin()
 
 install_dependencies(str(sys.argv[1]))
-time.sleep(5)

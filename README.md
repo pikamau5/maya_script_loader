@@ -19,6 +19,6 @@ Features:
 * Run the script from the menu as well
 
 * Check if script is up to date - mark as orange if outdated
-* Integrate sentry to all installable scripts :) 
+* Integrate error reporting to all scripts?
 
 ![enter image description here](https://i.imgur.com/HmsktUq.png)

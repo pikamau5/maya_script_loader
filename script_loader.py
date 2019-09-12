@@ -26,10 +26,12 @@ import os
 import shutil
 import imp
 from distutils.version import LooseVersion
-import script_loader_install_dependencies
 import sys
-import ctypes
-import subprocess
+import excepthook_override
+
+# override exception hook
+ex = excepthook_override.Except()
+ex.run_excepthook(os.path.basename(__file__))
 
 class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     """

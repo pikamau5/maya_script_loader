@@ -82,10 +82,10 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         brush_gray = QtGui.QBrush(QtGui.QColor(128, 128, 128))
         brush_gray.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_gray)
-        # orange brush
-        brush_orange = QtGui.QBrush(QtGui.QColor(255, 200, 94))
-        brush_orange.setStyle(QtCore.Qt.NoBrush)
-        brushes.append(brush_orange)
+        # green brush
+        brush_green = QtGui.QBrush(QtGui.QColor(156, 255, 39))
+        brush_green.setStyle(QtCore.Qt.NoBrush)
+        brushes.append(brush_green)
 
         return brushes
 
@@ -354,7 +354,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             if os.path.exists(target_folder):
                                 if version_outdated:  # if version is outdated
                                     script_item.setData(0, 34, True)  # set outdated status to true
-                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color orange
+                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color green
                                     script_item.setText(0, db_column[1] + " - New version available: " + version_db)
                                 else:
                                     script_item.setData(0, 34, False)  # set outdated status to false

@@ -11,25 +11,20 @@ reload(script_loader)
 TODO: insert sentry
 TODO: add Non Editable ? checkboxes
 TODO: Add pip_test contents to installation def
-    * require requirements.txt?
     * figure out how to run "main" function..?
-    * check if dependencies are already installed
 
 '''
 
-from script_loader_ui import Ui_Form
-import sqlite3 as lite
+import os, shutil, imp, sys, pkg_resources, sqlite3
 from PySide2 import QtWidgets, QtCore, QtGui
-import os
-import shutil
-import imp
 from distutils.version import LooseVersion
-import sys
+from script_loader_ui import Ui_Form
 import excepthook_override
 
 # override exception hook
 ex = excepthook_override.Except()
 ex.run_excepthook(os.path.basename(__file__))
+
 
 class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     """
@@ -54,7 +49,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         self.update_btn.clicked.connect(self.update_tree)  # connect update button
         self.treeWidget.itemClicked.connect(self.get_selected_item)  # get selected item
-        self.treeWidget.itemDoubleClicked.connect(lambda: self.launch_script(self.get_selected_item()))  # run on double click
+        self.treeWidget.itemDoubleClicked.connect(lambda: self.launch_script(self.get_selected_item(), self.check_if_installed()))  # run on double click
 
         # for right clicking tree widget items
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -73,15 +68,16 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         Create color brushes for text fields
         Returns: brushes as an array
         """
+        # white brush
         brushes = []
         brush_white = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush_white.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_white)
-
+        # gray brush
         brush_gray = QtGui.QBrush(QtGui.QColor(128, 128, 128))
         brush_gray.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_gray)
-
+        # orange brush
         brush_orange = QtGui.QBrush(QtGui.QColor(255, 200, 94))
         brush_orange.setStyle(QtCore.Qt.NoBrush)
         brushes.append(brush_orange)
@@ -93,11 +89,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         bold/normal font
         Returns: fonts as an array
         """
+        # bold font
         fonts = []
         font_bold = QtGui.QFont()
         font_bold.setBold(True)
         fonts.append(font_bold)
-
+        # regular font
         font_normal = QtGui.QFont()
         font_normal.setBold(True)
         fonts.append(font_normal)
@@ -115,17 +112,14 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items
             return
-
         if installed:
             RunAction = QtWidgets.QAction("Run", self)
-            RunAction.triggered.connect(lambda: self.launch_script(self.get_selected_item()))
+            RunAction.triggered.connect(lambda: self.launch_script(self.get_selected_item(), self.check_if_installed()))
             self.menu.addAction(RunAction)
-
         if installed and outdated:
             installAction = QtWidgets.QAction("Update", self)
             installAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
             self.menu.addAction(installAction)
-
         if installed:
             UninstallAction = QtWidgets.QAction("Uninstall", self)
             UninstallAction.triggered.connect(lambda: self.uninstall_local(self.get_selected_item()))
@@ -180,16 +174,31 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
             self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
             print "Installed " + last_folder + " success!"
-            # do some stuff to get the correct paths
-            maya_exe = sys.executable
-            maya_exe = maya_exe.split(".")
-            maya_exe = maya_exe[0] + "py.exe"
-            maya_exe = maya_exe.replace("\\","/")
-            dependencies_script = "script_loader_install_dependencies.py"
-            # install dependencies
-            command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
-            os.system('"' + command + "& pause" + '"')
-            print "Installed dependencies."
+            # check dependencies:
+            requirements_file = new_folder + "/requirements.txt"
+            if not os.path.isfile(requirements_file):  # check that file exists
+                print "requirements.txt not found."
+                return
+            dependencies = [line.rstrip('\r\n') for line in open(new_folder + "/requirements.txt")]
+            # Throw exception if dependencies are not met
+            print "Dependencies: " + str(dependencies)
+            try:
+                pkg_resources.require(dependencies)
+                print "Dependencies are OK."
+            except:
+                if not self.message_query("Missing dependencies", "Install the following dependencies?: " + str(dependencies)):
+                    print "user canceled"
+                    return
+                # do some stuff to get the correct paths
+                maya_exe = sys.executable
+                maya_exe = maya_exe.split(".")
+                maya_exe = maya_exe[0] + "py.exe"
+                maya_exe = maya_exe.replace("\\","/")
+                dependencies_script = "script_loader_install_dependencies.py"
+                # install dependencies
+                command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
+                os.system('"' + command + "& pause" + '"')
+                print "Installed missing dependencies."
 
         except:
             print "Failed to install " + last_folder
@@ -210,13 +219,31 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
         self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
 
+    def message_query(self, title, message):
+        """
+        Popup to ask user input
+        Args:
+            title: Title of the popup
+            message: Message of the popup
+        Returns: True / False for the user's answer
+        """
+        result = QtWidgets.QMessageBox.question(self, title, message,
+                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                                QtWidgets.QMessageBox.No)
+        if result == QtWidgets.QMessageBox.StandardButton.Yes:
+            answer = True
+        else:
+            answer = False
+        self.write_to_log(title + " | " + message + " | " + str(answer))
+        return answer
+
     def get_selected_update_status(self):
         """
         Get name of selected item
         Returns: the selected item
         """
         b = self.treeWidget.selectedItems()
-        sel_item = b[0].data(0,34)
+        sel_item = b[0].data(0,34)  # 34 = true if outdated
         return sel_item
 
     def check_if_selected_is_script_item(self):
@@ -237,7 +264,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         sel_item = b[0].data(0,32)
         return sel_item
 
-    def check_if_version_outdated(self, script_path):
+    def check_version(self, script_path):
         """
         Compare versions of local and source script
         Args:
@@ -251,8 +278,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         version_file_local = final_folder + "/_version.py"
         version_file_db = script_path + "/_version.py"
-        print version_file_local
-        print version_file_db # TODO figure out why the version numbers are the same!
 
         try:
             foo = imp.load_source('module.name', version_file_local)
@@ -306,7 +331,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             # if folder exists
                             if os.path.exists(target_folder):
                                 # get versions
-                                if self.check_if_version_outdated(item[2]): # if version is outdated
+                                if self.check_version(item[2]): # if version is outdated
                                     # set text color orange
                                     script_item.setForeground(0, self.create_brushes()[2])
                                     script_item.setData(0,34,True) # set true if outdated
@@ -319,12 +344,15 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         self.treeWidget.expandToDepth(0)
 
-    def launch_script(self, script_path):
+    def launch_script(self, script_path, installed):
         """
         Launch script in maya
         Args:
             script_path: path to the script
         """
+        if not os.path.isdir(script_path) or not installed:
+            print "not installed."
+            return
         maya_folder = self.get_maya_scripts_folder()
         script_folder_name = str(script_path).split("/")
         final_folder = maya_folder + "/" + script_folder_name[-1]
@@ -336,7 +364,7 @@ class ScriptLoaderLogic():
     """
     Logic class for script loader TODO: move more stuff here
     """
-    con = lite.connect('C:/my_projects/script_loader/scripts.db')  # path to database
+    con = sqlite3.connect('C:/my_projects/script_loader/scripts.db')  # path to database
 
     def get_database(self):
         """

@@ -43,9 +43,10 @@ class Ui_Form(object):
         self.tabWidget.addTab(self.tab_1, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
-        self.plainTextEdit = QtWidgets.QPlainTextEdit(self.tab_2)
-        self.plainTextEdit.setGeometry(QtCore.QRect(10, 20, 281, 291))
+        self.plainTextEdit = QtWidgets.QLabel(self.tab_2)
+        self.plainTextEdit.setGeometry(QtCore.QRect(10, 10, 291, 391))
         self.plainTextEdit.setObjectName("plainTextEdit")
+        self.plainTextEdit.setAlignment(QtCore.Qt.AlignTop)
         self.tabWidget.addTab(self.tab_2, "")
 
         self.retranslateUi(Form)
@@ -68,16 +69,12 @@ class Ui_Form(object):
         #self.treeWidget.topLevelItem(0).child(1).setText(0, QtWidgets.QApplication.translate("Form", "asdasd", None,  -1))
         self.treeWidget.setSortingEnabled(__sortingEnabled)
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_1), QtWidgets.QApplication.translate("Form", "Script loader", None,  -1))
-        self.plainTextEdit.setPlainText(QtWidgets.QApplication.translate("Form", "Todo:\n"
-                                                                             "\n"
-                                                                             "right click list item to open context menu:\n"
-                                                                             "* Install / Uninstall\n"
-                                                                             "* Update\n"
-                                                                             "\n"
-                                                                             "Change color when:\n"
-                                                                             "* Installed\n"
-                                                                             "* uninstalled\n"
-                                                                             "* Out of date", None,  -1))
+        self.plainTextEdit.setText(QtWidgets.QApplication.translate("Form", "Script Loader\n"
+                                                                         "\n"
+                                                                         "Loads scripts with dependencies from network.\n"
+                                                                         "\n"
+                                                                         "By Laura K - www.laurakart.fi"
+                                                                         , None,  -1))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtWidgets.QApplication.translate("Form", "Info", None, -1))
 
 

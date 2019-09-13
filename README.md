@@ -20,7 +20,7 @@ Features:
 * Uninstall
 * Run the script
 
-* Checks if the script is up to date - mark as orange if outdated
-* Integrate error reporting to all scripts?
+* Checks if the script is up to date
 
-![enter image description here](https://i.imgur.com/HmsktUq.png)
+To do:
+* Integrate error reporting to all scripts..?

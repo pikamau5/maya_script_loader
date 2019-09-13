@@ -314,7 +314,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             # add entries to categories
             for entry in entries:
                 for item in entry:
-                        if item[4] == category:
+                        if item[3] == category:
                             script_item = QtWidgets.QTreeWidgetItem(cat_item)
                             script_item.setText(0, item[1] + " / " + str(item[3]))
                             script_item.setData(0,32, item[2])  # path
@@ -390,7 +390,7 @@ class ScriptLoaderLogic():
         categories = []
         for entry in entries:
             for item in entry:
-                categories.append(item[4])  # get all categories
+                categories.append(item[3])  # get all categories
         categories = list(dict.fromkeys(categories))  # remove duplicates
         return categories
 

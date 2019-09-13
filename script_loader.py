@@ -205,7 +205,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                 dependencies_script = "script_loader_install_dependencies.py"
                 # install dependencies
                 command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
-                os.system('"' + command + "& pause" + '"')
+                os.system('"' + command + '"')
                 try:
                     pkg_resources.require(dependencies)
                     print "Installed missing dependencies."

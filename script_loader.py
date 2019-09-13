@@ -20,6 +20,7 @@ from PySide2 import QtWidgets, QtCore, QtGui
 from distutils.version import LooseVersion
 from script_loader_ui import Ui_Form
 import excepthook_override
+import script_loader_config
 
 # override exception hook
 ex = excepthook_override.Except()
@@ -187,21 +188,19 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                 print "Dependencies are OK."
             except:
                 if not self.message_query("Missing dependencies", "Install the following dependencies?: " + str(dependencies)):
-                    print "user canceled"
+                    print "User cancelled."
                     return
-                # do some stuff to get the correct paths
-                maya_exe = sys.executable
-                maya_exe = maya_exe.split(".")
-                maya_exe = maya_exe[0] + "py.exe"
-                maya_exe = maya_exe.replace("\\","/")
+                # do some wonky stuff to get the correct path to python executable..
+                maya_exe = sys.executable.split(".")[0] + "py.exe"
+                maya_exe = maya_exe.replace("\\", "/")
                 dependencies_script = "script_loader_install_dependencies.py"
                 # install dependencies
                 command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
                 os.system('"' + command + "& pause" + '"')
                 print "Installed missing dependencies."
 
-        except:
-            print "Failed to install " + last_folder
+        except Exception as e:
+            print "Failed to install " + last_folder + ", " + str(e)
 
     def uninstall_local(self, selected_item):
         """
@@ -286,8 +285,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             db_version = str(bar.__version__)
 
             if LooseVersion(db_version) > LooseVersion(local_version):
-                print "script is outdated: "
-                print "Version for " + final_folder + " - db: " + db_version + " local: " + local_version
+                print "The following script is outdated:  " + final_folder + " - db: " + db_version + " local: " + local_version
                 version_outdated = True
             else:
                 version_outdated = False
@@ -303,7 +301,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.treeWidget.clear()
 
         # get db here
-        entries = self.sll.get_database()
+        db_entries = self.sll.get_database()
         categories = self.sll.get_categories()
 
         # create root items for categories
@@ -312,36 +310,34 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             cat_item.setText(0, category)
             cat_item.setData(0, 35, False)  # script item
             # add entries to categories
-            for entry in entries:
-                for item in entry:
-                        if item[3] == category:
+            for db_row in db_entries:
+                for db_column in db_row:
+                        if db_column[3] == category:
                             script_item = QtWidgets.QTreeWidgetItem(cat_item)
-                            script_item.setText(0, item[1] + " / " + str(item[3]))
-                            script_item.setData(0,32, item[2])  # path
-                            script_item.setData(0, 33, item[3])  # version
+                            # set tree item data
+                            script_item.setText(0, db_column[1] + " / " + str(db_column[3]))
+                            script_item.setData(0,32, db_column[2])  # path
+                            script_item.setData(0, 33, db_column[3])  # version
                             script_item.setData(0, 35, True)  # script item
                             script_item.setForeground(0, self.create_brushes()[1])
-
                             # Check if file already exists
                             maya_script_folder = self.get_maya_scripts_folder()
-                            split_string = str(item[2]).split("/")
+                            split_string = str(db_column[2]).split("/")
                             script_name = split_string[-1]
-
                             target_folder = maya_script_folder + "/" + script_name
                             # if folder exists
                             if os.path.exists(target_folder):
                                 # get versions
-                                if self.check_version(item[2]): # if version is outdated
+                                if self.check_version(db_column[2]): # if version is outdated
                                     # set text color orange
                                     script_item.setForeground(0, self.create_brushes()[2])
                                     script_item.setData(0,34,True) # set true if outdated
-
                                 else:
                                     # set text color white + bold
                                     script_item.setData(0, 34, False)
                                     script_item.setForeground(0, self.create_brushes()[0])
                                     script_item.setFont(0, self.create_fonts()[0])
-
+        # expand the tree
         self.treeWidget.expandToDepth(0)
 
     def launch_script(self, script_path, installed):
@@ -349,9 +345,10 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         Launch script in maya
         Args:
             script_path: path to the script
+            installed: true if its installed
         """
         if not os.path.isdir(script_path) or not installed:
-            print "not installed."
+            print "Script is not installed."
             return
         maya_folder = self.get_maya_scripts_folder()
         script_folder_name = str(script_path).split("/")
@@ -364,7 +361,8 @@ class ScriptLoaderLogic():
     """
     Logic class for script loader TODO: move more stuff here
     """
-    con = sqlite3.connect('C:/my_projects/script_loader/scripts.db')  # path to database
+
+    con = sqlite3.connect(script_loader_config.database_path)  # path to database
 
     def get_database(self):
         """

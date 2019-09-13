@@ -19,6 +19,7 @@ import os, shutil, imp, sys, pkg_resources, sqlite3
 from PySide2 import QtWidgets, QtCore, QtGui
 from distutils.version import LooseVersion
 from script_loader_ui import Ui_Form
+import maya.cmds as cmds
 import excepthook_override
 import script_loader_config
 
@@ -192,9 +193,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                 pkg_resources.require(dependencies)
                 print "Dependencies are OK."
             except:
-                if not self.message_query("Missing dependencies", "Install the following dependencies?: " + str(dependencies)):
-                    print "User cancelled."
-                    return
+                dependencies_str = ""
+                for d in dependencies:
+                    dependencies_str += d + ", "
+                # notify user
+                self.popup_message("Additional libraries needed", "The following libraries will be installed: \n"
+                                   + dependencies_str)
                 # do some wonky stuff to get the correct path to python executable..
                 maya_exe = sys.executable.split(".")[0] + "py.exe"
                 maya_exe = maya_exe.replace("\\", "/")
@@ -202,7 +206,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                 # install dependencies
                 command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
                 os.system('"' + command + "& pause" + '"')
-                print "Installed missing dependencies."
+                try:
+                    pkg_resources.require(dependencies)
+                    print "Installed missing dependencies."
+                except:
+                    print "Couldn't install dependencies! uninstalling.."  # POPUP
+                    self.uninstall_local(selected_item)
 
         except Exception as e:
             print "Failed to install " + last_folder + ", " + str(e)
@@ -223,6 +232,15 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
         self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
 
+    def popup_message(self, title, message):
+        """
+        A popup message
+        Args:
+            title: Title of the popup message
+            message: Body of the popup message
+        """
+        QtWidgets.QMessageBox.information(self, title, message)
+
     def message_query(self, title, message):
         """
         Popup to ask user input
@@ -238,7 +256,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             answer = True
         else:
             answer = False
-        self.write_to_log(title + " | " + message + " | " + str(answer))
         return answer
 
     def get_update_status(self):

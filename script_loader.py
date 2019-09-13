@@ -241,8 +241,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.write_to_log(title + " | " + message + " | " + str(answer))
         return answer
 
-
-
     def get_update_status(self):
         """
         Get status of current item (true if outdated)
@@ -270,7 +268,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         sel_item = b[0].data(0,32)
         return sel_item
 
-    def check_version(self, script_path):
+    def get_version(self, script_path):
         """
         Compare versions of local and source script
         Args:
@@ -285,12 +283,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         version_file_local = final_folder + "/_version.py"
         version_file_db = script_path + "/_version.py"
 
+        bar = imp.load_source('module.name', version_file_db)
+        db_version = str(bar.__version__)
+        local_version = ""
         try:
             foo = imp.load_source('module.name', version_file_local)
             local_version = str(foo.__version__)
-            bar = imp.load_source('module.name', version_file_db)
-            db_version = str(bar.__version__)
-
             if LooseVersion(db_version) > LooseVersion(local_version):
                 print "The following script is outdated:  " + final_folder + " - db: " + db_version + " local: " + local_version
                 version_outdated = True
@@ -299,7 +297,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         except Exception as e:
             print "could not find version number in " + version_file_local + " " + str(e)
 
-        return version_outdated
+        return local_version, db_version, version_outdated
 
     def update_tree(self):
         """
@@ -322,7 +320,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                         if db_column[3] == category:
                             script_item = QtWidgets.QTreeWidgetItem(cat_item)
                             # set tree item data
-                            script_item.setText(0, db_column[1] + " / " + str(db_column[3]))
                             script_item.setData(0,32, db_column[2])  # path
                             script_item.setData(0, 33, db_column[3])  # version
                             script_item.setData(0, 35, True)  # script item
@@ -332,13 +329,16 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             split_string = str(db_column[2]).split("/")
                             script_name = split_string[-1]
                             target_folder = maya_script_folder + "/" + script_name
+                            # get versions
+                            version_local, version_db, version_outdated = self.get_version(db_column[2])
+                            # Set item text
+                            script_item.setText(0, db_column[1] + " " + version_db)
                             # if folder exists
                             if os.path.exists(target_folder):
-                                # get versions
-                                if self.check_version(db_column[2]):  # if version is outdated
+                                if version_outdated:  # if version is outdated
                                     script_item.setData(0, 34, True)  # set outdated status to true
                                     script_item.setForeground(0, self.create_brushes()[2])  # set text color orange
-
+                                    script_item.setText(0, db_column[1] + " - New version available: " + version_db)
                                 else:
                                     script_item.setData(0, 34, False)  # set outdated status to false
                                     # set text color white + bold

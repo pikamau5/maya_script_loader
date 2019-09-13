@@ -1,2 +1,0 @@
-c:\Python27>pipreqs C:/my_projects/scene_exporter_pkg
-INFO: Successfully saved requirements file in C:/my_projects/scene_exporter_pkg\requirements.txt

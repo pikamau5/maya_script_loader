@@ -7,6 +7,8 @@ script loader for maya (tested in maya2018)
 
 ![enter image description here](https://i.imgur.com/YME6MdD.png)
 
+
+
 Goal: to install scripts to user's maya from network drive
 
 Features:

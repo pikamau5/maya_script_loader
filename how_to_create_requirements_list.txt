@@ -1,0 +1,3 @@
+pipreqs SCRIPT_FOLDER
+
+creates requirements.txt in folder root

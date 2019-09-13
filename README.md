@@ -3,24 +3,24 @@ SyntaxEditor Code Snippet
 
 # Maya Script Loader
 ## (Work in progress)
-script loader for maya (tested in maya2018)
+Installs scripts to users maya install from network drive.
 
-![enter image description here](https://i.imgur.com/YME6MdD.png)
+![enter image description here](https://raw.githubusercontent.com/pikamau5/maya_script_loader/master/screenshot.png)
+
+![enter image description here](https://raw.githubusercontent.com/pikamau5/maya_script_loader/master/Capture.PNG)
 
 
-
-Goal: to install scripts to user's maya from network drive
 
 Features:
 
-* Load list of scripts from database
-* Install
-	* Copy to maya scripts folder
-	* Install dependencies from requirements.txt
+* Loads list of scripts from database
+* Installs the script
+	* Copy script folder to Maya scripts folder
+	* Installs dependencies from requirements.txt
 * Uninstall
-* Run the script from the menu as well
+* Run the script
 
-* Check if script is up to date - mark as orange if outdated
+* Checks if the script is up to date - mark as orange if outdated
 * Integrate error reporting to all scripts?
 
 ![enter image description here](https://i.imgur.com/HmsktUq.png)

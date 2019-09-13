@@ -50,13 +50,15 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         self.update_btn.clicked.connect(self.update_tree)  # connect update button
         self.treeWidget.itemClicked.connect(self.get_selected_item)  # get selected item
-        self.treeWidget.itemDoubleClicked.connect(lambda: self.launch_script(self.get_selected_item(), self.check_if_installed()))  # run on double click
+        #  run on double click
+        self.treeWidget.itemDoubleClicked.connect(lambda: self.launch_script(self.get_selected_item(),
+                                                                             self.check_if_installed()))
 
         # for right clicking tree widget items
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(lambda: self.contextMenuEvent(self.check_if_installed(),
-                                                                                         self.get_selected_update_status(),
-                                                                                         self.check_if_selected_is_script_item()))
+                                                                                         self.get_update_status(),
+                                                                                         self.check_if_script_item()))
 
         form.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # Window always on top
 
@@ -64,7 +66,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.treeWidget.expandToDepth(0)
         self.update_tree()  # update tree on launch
 
-    def create_brushes(self):
+    @staticmethod
+    def create_brushes():
         """
         Create color brushes for text fields
         Returns: brushes as an array
@@ -85,7 +88,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         return brushes
 
-    def create_fonts(self):
+    @staticmethod
+    def create_fonts():
         """
         bold/normal font
         Returns: fonts as an array
@@ -147,7 +151,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         else:
             return False
 
-    def get_maya_scripts_folder(self):
+    @staticmethod
+    def get_maya_scripts_folder():
         """
         Get path of maya scripts folder
         Returns:path to maya scripts folder
@@ -236,22 +241,24 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.write_to_log(title + " | " + message + " | " + str(answer))
         return answer
 
-    def get_selected_update_status(self):
-        """
-        Get name of selected item
-        Returns: the selected item
-        """
-        b = self.treeWidget.selectedItems()
-        sel_item = b[0].data(0,34)  # 34 = true if outdated
-        return sel_item
 
-    def check_if_selected_is_script_item(self):
+
+    def get_update_status(self):
         """
-        Get name of selected item
-        Returns: the selected item
+        Get status of current item (true if outdated)
+        Returns: True if outdated
+        """
+        selected_items = self.treeWidget.selectedItems()
+        selected_item = selected_items[0].data(0,34)  # 34 = true if outdated
+        return selected_item
+
+    def check_if_script_item(self):
+        """
+        Check if list item is a script item and not a category
+        Returns: True if script item
         """
         b = self.treeWidget.selectedItems()
-        sel_item = b[0].data(0,35)
+        sel_item = b[0].data(0,35) # true if script item (not a category)
         return sel_item
 
     def get_selected_item(self):
@@ -308,7 +315,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         for category in categories:
             cat_item = QtWidgets.QTreeWidgetItem(self.treeWidget)
             cat_item.setText(0, category)
-            cat_item.setData(0, 35, False)  # script item
+            cat_item.setData(0, 35, False)  # not a script item
             # add entries to categories
             for db_row in db_entries:
                 for db_column in db_row:
@@ -328,13 +335,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             # if folder exists
                             if os.path.exists(target_folder):
                                 # get versions
-                                if self.check_version(db_column[2]): # if version is outdated
-                                    # set text color orange
-                                    script_item.setForeground(0, self.create_brushes()[2])
-                                    script_item.setData(0,34,True) # set true if outdated
+                                if self.check_version(db_column[2]):  # if version is outdated
+                                    script_item.setData(0, 34, True)  # set outdated status to true
+                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color orange
+
                                 else:
+                                    script_item.setData(0, 34, False)  # set outdated status to false
                                     # set text color white + bold
-                                    script_item.setData(0, 34, False)
                                     script_item.setForeground(0, self.create_brushes()[0])
                                     script_item.setFont(0, self.create_fonts()[0])
         # expand the tree

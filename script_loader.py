@@ -147,26 +147,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.treeWidget.expandToDepth(0)
 
     def install_whl(self, selected_item):
-
-
+        """
+        Install whl file
+        Args:
+            selected_item: path to whl file
+        """
         script_loader_install_whl.install_dependencies(selected_item)
-        '''
-        whl = str(selected_item).split(".")
-        whl = whl[-1]
-        if whl != "whl":
-            return
 
-        maya_exe = sys.executable.split(".")[0] + "py.exe"
-        maya_exe = maya_exe.replace("\\", "/")
-        # install dependencies
-        print "PIP INSTALL:"
-        print maya_exe
-        print selected_item
-        command = "\"" + str(maya_exe) + "\"" + " -m pip install " + "\"" + selected_item + "\""
-        print command
-        os.system('"' + command + " & pause" + '"') #TODO: figure out why this does not work
-        print "success"
-        '''
 
     def install_local(self, selected_item, maya_script_folder):
         """
@@ -175,13 +162,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             selected_item: the selected item in the treewidget menu
             maya_script_folder: path to local maya script folder
         """
-        print "atestasdasd1"
         print selected_item
         whl = str(selected_item).split(".")
         whl = whl[-1]
         print whl
         if whl == "whl":
-            print "atestasdasd"
+            print "whl file, installing.."
             self.install_whl(selected_item)
             return
 

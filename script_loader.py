@@ -25,6 +25,7 @@ from script_loader_ui import Ui_Form
 import maya.cmds as cmds
 import excepthook_override
 import script_loader_config
+import script_loader_install_whl
 
 # override exception hook
 ex = excepthook_override.Except()
@@ -71,7 +72,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
     def right_click(self):
 
-        path = self.my_selected_path
+        path = self.get_selected_path()
         installed = self.check_if_installed()
         outdated = self.get_update_status()
         script_item = self.check_if_script_item()
@@ -120,6 +121,14 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             script_name = split_string[-1]
                             target_folder = maya_script_folder + "/" + script_name
                             # get versions
+
+                            whl = str(db_column[2]).split(".")
+                            if whl[-1] == "whl":
+                                script_item.setText(0, db_column[2])
+                                continue
+
+
+
                             version_local, version_db, version_outdated = self.get_version(db_column[2])
                             # Set item text
                             script_item.setText(0, db_column[1] + " " + version_db)
@@ -137,6 +146,28 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         # expand the tree
         self.treeWidget.expandToDepth(0)
 
+    def install_whl(self, selected_item):
+
+
+        script_loader_install_whl.install_dependencies(selected_item)
+        '''
+        whl = str(selected_item).split(".")
+        whl = whl[-1]
+        if whl != "whl":
+            return
+
+        maya_exe = sys.executable.split(".")[0] + "py.exe"
+        maya_exe = maya_exe.replace("\\", "/")
+        # install dependencies
+        print "PIP INSTALL:"
+        print maya_exe
+        print selected_item
+        command = "\"" + str(maya_exe) + "\"" + " -m pip install " + "\"" + selected_item + "\""
+        print command
+        os.system('"' + command + " & pause" + '"') #TODO: figure out why this does not work
+        print "success"
+        '''
+
     def install_local(self, selected_item, maya_script_folder):
         """
         Copy the script to the local maya scripts folder.
@@ -144,6 +175,16 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             selected_item: the selected item in the treewidget menu
             maya_script_folder: path to local maya script folder
         """
+        print "atestasdasd1"
+        print selected_item
+        whl = str(selected_item).split(".")
+        whl = whl[-1]
+        print whl
+        if whl == "whl":
+            print "atestasdasd"
+            self.install_whl(selected_item)
+            return
+
         last_folder = ""
         try:
             last_folder = str(selected_item).split("/")
@@ -215,6 +256,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             is_script_item: is is a script item?
             maya_script_folder: path to local maya script folder
         """
+
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items
             return
@@ -297,6 +339,9 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             script_path: path to local script
         Returns: True if outdated
         """
+        whl = str(script_path).split(".")
+        if whl[-1] == "whl":
+            return
         version_outdated = False
         maya_folder = self.get_maya_scripts_folder()
         script_folder_name = str(script_path).split("/")

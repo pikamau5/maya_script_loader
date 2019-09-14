@@ -38,7 +38,6 @@ def install_dependencies(script_folder):
         pip_auto_install(script_folder)
     else:
         # Re-run the program with admin rights
-        time.sleep(5)
         ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__ + " " + script_folder), None, 1)
 
     is_admin()

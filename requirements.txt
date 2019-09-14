@@ -1,0 +1,4 @@
+pip==19.2.3
+setuptools==28.8.0
+PySide2==5.13.1
+maya==0.6.1

@@ -1,17 +1,20 @@
 '''
-Load database
-load ui
+Script loader for maya -
+Loads scripts using a database from a remote location and installs scripts w/ dependencies to local maya install.
+
+By Laura K - laurakoekoek91@gmail.com - www.laurakart.fi
 
 import script_loader
 import script_loader_ui
 reload(script_loader_ui)
 reload(script_loader)
 
-
 TODO: insert sentry
 TODO: add Non Editable ? checkboxes
 TODO: Add pip_test contents to installation def
-    * figure out how to run "main" function..?
+    * figure out how to run "main" function..?'
+
+TODO: add user popups
 
 '''
 
@@ -40,6 +43,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self._ui = Ui_Form()
         self._ui.setupUi(self)
         self.sll = ScriptLoaderLogic() # load logic class
+        self.my_selected_path = ""
 
     def setup_ui(self):
         """
@@ -50,22 +54,37 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         super(ScriptLoaderUI, self).setupUi(form)
 
         self.update_btn.clicked.connect(self.update_tree)  # connect update button
-        self.treeWidget.itemClicked.connect(self.get_selected_item)  # get selected item
+        self.treeWidget.itemClicked.connect(self.get_selected_path)  # get selected item
         #  run on double click
-        self.treeWidget.itemDoubleClicked.connect(lambda: self.launch_script(self.get_selected_item(),
-                                                                             self.check_if_installed()))
+        self.treeWidget.itemDoubleClicked.connect(self.double_click)
 
         # for right clicking tree widget items
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.treeWidget.customContextMenuRequested.connect(lambda: self.contextMenuEvent(self.check_if_installed(),
-                                                                                         self.get_update_status(),
-                                                                                         self.check_if_script_item()))
+        self.treeWidget.customContextMenuRequested.connect(self.right_click)
 
         form.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # Window always on top
 
         # expand tree on start
         self.treeWidget.expandToDepth(0)
         self.update_tree()  # update tree on launch
+
+    def right_click(self):
+
+        path = self.my_selected_path
+        installed = self.check_if_installed()
+        outdated = self.get_update_status()
+        script_item = self.check_if_script_item()
+        maya_script_folder = self.get_maya_scripts_folder()
+
+        self.contextMenuEvent(path, installed, outdated, script_item, maya_script_folder)
+
+    def double_click(self):
+
+        path = self.my_selected_path
+        installed = self.check_if_installed()
+        maya_script_folder = self.get_maya_scripts_folder()
+
+        self.launch_script(maya_script_folder, path, installed)
 
     @staticmethod
     def create_brushes():
@@ -107,32 +126,33 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         return fonts
 
-    def contextMenuEvent(self, installed, outdated, is_script_item):
+    def contextMenuEvent(self, selected_path, installed, outdated, is_script_item, maya_script_folder):
         """
         Context menu for treewidget items
         Args:
             installed: is script installed?
             outdated: is script outdated?
             is_script_item: is is a script item?
+            maya_script_folder: path to local maya script folder
         """
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items
             return
         if installed:
             RunAction = QtWidgets.QAction("Run", self)
-            RunAction.triggered.connect(lambda: self.launch_script(self.get_selected_item(), self.check_if_installed()))
+            RunAction.triggered.connect(lambda: self.launch_script(maya_script_folder, selected_path, installed))
             self.menu.addAction(RunAction)
         if installed and outdated:
             installAction = QtWidgets.QAction("Update", self)
-            installAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
+            installAction.triggered.connect(lambda: self.install_local(selected_path))
             self.menu.addAction(installAction)
         if installed:
             UninstallAction = QtWidgets.QAction("Uninstall", self)
-            UninstallAction.triggered.connect(lambda: self.uninstall_local(self.get_selected_item()))
+            UninstallAction.triggered.connect(lambda: self.uninstall_local(selected_path))
             self.menu.addAction(UninstallAction)
         else:
             UninstallAction = QtWidgets.QAction("Install", self)
-            UninstallAction.triggered.connect(lambda: self.install_local(self.get_selected_item()))
+            UninstallAction.triggered.connect(lambda: self.install_local(selected_path, maya_script_folder))
             self.menu.addAction(UninstallAction)
         self.menu.popup(QtGui.QCursor.pos())
 
@@ -141,7 +161,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         checks if scripts in db are installed in current scripts folder
         Returns: True if installed
         """
-        db_folder = self.get_selected_item()
+        db_folder = self.get_selected_path()
         maya_script_folder = self.get_maya_scripts_folder()
         db_folder_split = str(db_folder).split("/")
         last_folder = db_folder_split[-1]
@@ -162,14 +182,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         maya_script_folder = maya_script_folder.replace("\\", "/")
         return maya_script_folder
 
-    def install_local(self, selected_item):
+    def install_local(self, selected_item, maya_script_folder):
         """
         Copy the script to the local maya scripts folder.
         Args:
             selected_item: the selected item in the treewidget menu
+            maya_script_folder: path to local maya script folder
         """
-
-        maya_script_folder = self.get_maya_scripts_folder()
         last_folder = ""
         try:
             last_folder = str(selected_item).split("/")
@@ -240,6 +259,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             message: Body of the popup message
         """
         QtWidgets.QMessageBox.information(self, title, message)
+        
+
 
     def message_query(self, title, message):
         """
@@ -276,14 +297,15 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         sel_item = b[0].data(0,35) # true if script item (not a category)
         return sel_item
 
-    def get_selected_item(self):
+    def get_selected_path(self):
         """
         Get name of selected item
         Returns: the selected item
         """
         b = self.treeWidget.selectedItems()
-        sel_item = b[0].data(0,32)
-        return sel_item
+        sel_path = b[0].data(0,32)
+        self.my_selected_path = sel_path
+        return sel_path
 
     def get_version(self, script_path):
         """
@@ -296,7 +318,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         maya_folder = self.get_maya_scripts_folder()
         script_folder_name = str(script_path).split("/")
         final_folder = maya_folder + "/" + script_folder_name[-1]
-
+        # append version file path
         version_file_local = final_folder + "/_version.py"
         version_file_db = script_path + "/_version.py"
 
@@ -309,8 +331,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             if LooseVersion(db_version) > LooseVersion(local_version):
                 print "The following script is outdated:  " + final_folder + " - db: " + db_version + " local: " + local_version
                 version_outdated = True
-            else:
-                version_outdated = False
         except Exception as e:
             print "could not find version number in " + version_file_local + " " + str(e)
 
@@ -319,15 +339,17 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     def update_tree(self):
         """
         Update the treewidget list
+        db column info: 0=ID, 1=name, 2=path, 3=category
+        widget item data: 32=path, 33=version, 34=True if outdated, 35=True if script item
         """
         self.treeWidget.clear()
 
         # get db here
         db_entries = self.sll.get_database()
-        categories = self.sll.get_categories()
+        categories = self.sll.get_categories(db_entries)
 
-        # create root items for categories
         for category in categories:
+            # create root items for categories
             cat_item = QtWidgets.QTreeWidgetItem(self.treeWidget)
             cat_item.setText(0, category)
             cat_item.setData(0, 35, False)  # not a script item
@@ -338,7 +360,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             script_item = QtWidgets.QTreeWidgetItem(cat_item)
                             # set tree item data
                             script_item.setData(0,32, db_column[2])  # path
-                            script_item.setData(0, 33, db_column[3])  # version
+                            script_item.setData(0, 33, db_column[3])  # category
                             script_item.setData(0, 35, True)  # script item
                             script_item.setForeground(0, self.create_brushes()[1])
                             # Check if file already exists
@@ -364,7 +386,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         # expand the tree
         self.treeWidget.expandToDepth(0)
 
-    def launch_script(self, script_path, installed):
+    @staticmethod
+    def launch_script(maya_folder, script_path, installed):
         """
         Launch script in maya
         Args:
@@ -374,7 +397,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         if not os.path.isdir(script_path) or not installed:
             print "Script is not installed."
             return
-        maya_folder = self.get_maya_scripts_folder()
         script_folder_name = str(script_path).split("/")
         final_folder = maya_folder + "/" + script_folder_name[-1]
         print "Running init file in folder: " + final_folder
@@ -385,7 +407,6 @@ class ScriptLoaderLogic():
     """
     Logic class for script loader TODO: move more stuff here
     """
-
     con = sqlite3.connect(script_loader_config.database_path)  # path to database
 
     def get_database(self):
@@ -403,14 +424,14 @@ class ScriptLoaderLogic():
                 all_tables.append(cur.fetchall())
             return all_tables
 
-    def get_categories(self):
+    @staticmethod
+    def get_categories(db_table_array):
         """
         Get all the categories
         Returns: all the categories in an array
         """
-        entries = self.get_database()
         categories = []
-        for entry in entries:
+        for entry in db_table_array:
             for item in entry:
                 categories.append(item[3])  # get all categories
         categories = list(dict.fromkeys(categories))  # remove duplicates

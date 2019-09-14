@@ -120,18 +120,20 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             split_string = str(db_column[2]).split("/")
                             script_name = split_string[-1]
                             target_folder = maya_script_folder + "/" + script_name
-                            # get versions
 
-                            whl = str(db_column[2]).split(".")
+                            # get versions + text
+                            # check for whl file
+                            whl = str(db_column[2]).split(".") 
                             if whl[-1] == "whl":
-                                script_item.setText(0, db_column[2])
-                                continue
-
-
-
-                            version_local, version_db, version_outdated = self.get_version(db_column[2])
-                            # Set item text
-                            script_item.setText(0, db_column[1] + " " + version_db)
+                                whl = str(db_column[2]).split("/")[-1].split("-")
+                                name_whl = whl[0]
+                                version_whl = whl[1]
+                                script_item.setText(0, name_whl + " " + version_whl)
+                            else:
+                                # if not a whl file
+                                version_local, version_db, version_outdated = self.get_version(db_column[2])
+                                # Set item text
+                                script_item.setText(0, db_column[1] + " " + version_db)
                             # if folder exists
                             if os.path.exists(target_folder):
                                 if version_outdated:  # if version is outdated
@@ -148,12 +150,15 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
     def install_whl(self, selected_item):
         """
-        Install whl file
+        Install whl file TODO: FINISH THIS!
         Args:
             selected_item: path to whl file
         """
         script_loader_install_whl.install_dependencies(selected_item)
 
+
+    def get_whl_version(self):
+        pass
 
     def install_local(self, selected_item, maya_script_folder):
         """

@@ -54,7 +54,6 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
         self.retranslateUi(Form)
-        #self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
@@ -66,7 +65,6 @@ class Ui_Form(object):
         self.treeWidget.setSortingEnabled(False)
         self.treeWidget.topLevelItem(0).setText(0, QtWidgets.QApplication.translate("Form", "Misc", None, -1))
         self.treeWidget.topLevelItem(0).child(0).setText(0, QtWidgets.QApplication.translate("Form", "Hello World", None,  -1))
-        #self.treeWidget.topLevelItem(0).child(1).setText(0, QtWidgets.QApplication.translate("Form", "asdasd", None,  -1))
         self.treeWidget.setSortingEnabled(__sortingEnabled)
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_1), QtWidgets.QApplication.translate("Form", "Script loader", None,  -1))
         self.plainTextEdit.setText(QtWidgets.QApplication.translate("Form", "Script Loader\n"

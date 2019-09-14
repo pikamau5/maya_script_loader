@@ -15,7 +15,7 @@ TODO: Add pip_test contents to installation def
     * figure out how to run "main" function..?'
 
 TODO: add user popups
-
+TODO: make UI Dockable and Scalable
 '''
 
 import os, shutil, imp, sys, pkg_resources, sqlite3
@@ -42,8 +42,9 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         super(ScriptLoaderUI, self).__init__(None)
         self._ui = Ui_Form()
         self._ui.setupUi(self)
-        self.sll = ScriptLoaderLogic() # load logic class
+        self.database = Database() # load logic class
         self.my_selected_path = ""
+        self.log = ""
 
     def setup_ui(self):
         """
@@ -86,45 +87,124 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         self.launch_script(maya_script_folder, path, installed)
 
-    @staticmethod
-    def create_brushes():
+    def update_tree(self):
         """
-        Create color brushes for text fields
-        Returns: brushes as an array
+        Update the treewidget list
+        db column info: 0=ID, 1=name, 2=path, 3=category
+        widget item data: 32=path, 33=version, 34=True if outdated, 35=True if script item
         """
-        # white brush
-        brushes = []
-        brush_white = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-        brush_white.setStyle(QtCore.Qt.NoBrush)
-        brushes.append(brush_white)
-        # gray brush
-        brush_gray = QtGui.QBrush(QtGui.QColor(128, 128, 128))
-        brush_gray.setStyle(QtCore.Qt.NoBrush)
-        brushes.append(brush_gray)
-        # green brush
-        brush_green = QtGui.QBrush(QtGui.QColor(156, 255, 39))
-        brush_green.setStyle(QtCore.Qt.NoBrush)
-        brushes.append(brush_green)
+        self.treeWidget.clear()
 
-        return brushes
+        # get db here
+        db_entries = self.database.get_database()
+        categories = self.database.get_categories(db_entries)
 
-    @staticmethod
-    def create_fonts():
-        """
-        bold/normal font
-        Returns: fonts as an array
-        """
-        # bold font
-        fonts = []
-        font_bold = QtGui.QFont()
-        font_bold.setBold(True)
-        fonts.append(font_bold)
-        # regular font
-        font_normal = QtGui.QFont()
-        font_normal.setBold(True)
-        fonts.append(font_normal)
+        for category in categories:
+            # create root items for categories
+            cat_item = QtWidgets.QTreeWidgetItem(self.treeWidget)
+            cat_item.setText(0, category)
+            cat_item.setData(0, 35, False)  # not a script item
+            # add entries to categories
+            for db_row in db_entries:
+                for db_column in db_row:
+                        if db_column[3] == category:
+                            script_item = QtWidgets.QTreeWidgetItem(cat_item)
+                            # set tree item data
+                            script_item.setData(0,32, db_column[2])  # path
+                            script_item.setData(0, 33, db_column[3])  # category
+                            script_item.setData(0, 35, True)  # script item
+                            script_item.setForeground(0, self.create_brushes()[1])
+                            # Check if file already exists
+                            maya_script_folder = self.get_maya_scripts_folder()
+                            split_string = str(db_column[2]).split("/")
+                            script_name = split_string[-1]
+                            target_folder = maya_script_folder + "/" + script_name
+                            # get versions
+                            version_local, version_db, version_outdated = self.get_version(db_column[2])
+                            # Set item text
+                            script_item.setText(0, db_column[1] + " " + version_db)
+                            # if folder exists
+                            if os.path.exists(target_folder):
+                                if version_outdated:  # if version is outdated
+                                    script_item.setData(0, 34, True)  # set outdated status to true
+                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color green
+                                    script_item.setText(0, db_column[1] + " - New version available: " + version_db)
+                                else:
+                                    script_item.setData(0, 34, False)  # set outdated status to false
+                                    # set text color white + bold
+                                    script_item.setForeground(0, self.create_brushes()[0])
+                                    script_item.setFont(0, self.create_fonts()[0])
+        # expand the tree
+        self.treeWidget.expandToDepth(0)
 
-        return fonts
+    def install_local(self, selected_item, maya_script_folder):
+        """
+        Copy the script to the local maya scripts folder.
+        Args:
+            selected_item: the selected item in the treewidget menu
+            maya_script_folder: path to local maya script folder
+        """
+        last_folder = ""
+        try:
+            last_folder = str(selected_item).split("/")
+            last_folder = last_folder[-1]
+            new_folder = maya_script_folder + "/" + last_folder
+            # copy the folder
+            shutil.copytree(selected_item, new_folder)
+            # change text color to be white
+            self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
+            self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
+            self.log_message("Installed " + last_folder + " success!")
+            # check dependencies:
+            requirements_file = new_folder + "/requirements.txt"
+            if not os.path.isfile(requirements_file):  # check that file exists
+                self.log_message("requirements.txt not found.")
+                return
+            dependencies = [line.rstrip('\r\n') for line in open(new_folder + "/requirements.txt")]
+            # Throw exception if dependencies are not met
+            self.log_message("Dependencies: " + str(dependencies))
+            try:
+                pkg_resources.require(dependencies)
+                self.log_message("Dependencies are OK.")
+            except:
+                dependencies_str = ""
+                for d in dependencies:
+                    dependencies_str += d + ", "
+                # notify user
+                self.popup_message("Additional libraries needed", "The following libraries will be installed: \n"
+                                   + dependencies_str)
+                # do some wonky stuff to get the correct path to python executable..
+                maya_exe = sys.executable.split(".")[0] + "py.exe"
+                maya_exe = maya_exe.replace("\\", "/")
+                dependencies_script = "script_loader_install_dependencies.py"
+                # install dependencies
+                command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
+                os.system('"' + command + '"')
+                try:
+                    pkg_resources.require(dependencies)
+                    self.log_message("Installed missing dependencies.")
+                except:
+                    self.log_message("Couldn't install dependencies! uninstalling..")
+                    self.uninstall_local(selected_item)
+
+        except Exception as e:
+            self.log_message("Failed to install " + last_folder + ", " + str(e))
+
+    def uninstall_local(self, selected_item):
+        """
+        Delete folder where script is
+        Args:
+            selected_item: selected item in treewidget menu
+        """
+        maya_scripts_folder = self.get_maya_scripts_folder()
+        last_folder = str(selected_item).split("/")
+        last_folder = last_folder[-1]
+        if len(last_folder) > 2:
+            target_folder = maya_scripts_folder + "/" + last_folder
+            self.log_message("Uninstalling " + target_folder)
+            shutil.rmtree(target_folder)
+        self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
+        self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
 
     def contextMenuEvent(self, selected_path, installed, outdated, is_script_item, maya_script_folder):
         """
@@ -182,103 +262,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         maya_script_folder = maya_script_folder.replace("\\", "/")
         return maya_script_folder
 
-    def install_local(self, selected_item, maya_script_folder):
-        """
-        Copy the script to the local maya scripts folder.
-        Args:
-            selected_item: the selected item in the treewidget menu
-            maya_script_folder: path to local maya script folder
-        """
-        last_folder = ""
-        try:
-            last_folder = str(selected_item).split("/")
-            last_folder = last_folder[-1]
-            new_folder = maya_script_folder + "/" + last_folder
-            # copy the folder
-            shutil.copytree(selected_item, new_folder)
-            # change text color to be white
-            self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
-            self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
-            print "Installed " + last_folder + " success!"
-            # check dependencies:
-            requirements_file = new_folder + "/requirements.txt"
-            if not os.path.isfile(requirements_file):  # check that file exists
-                print "requirements.txt not found."
-                return
-            dependencies = [line.rstrip('\r\n') for line in open(new_folder + "/requirements.txt")]
-            # Throw exception if dependencies are not met
-            print "Dependencies: " + str(dependencies)
-            try:
-                pkg_resources.require(dependencies)
-                print "Dependencies are OK."
-            except:
-                dependencies_str = ""
-                for d in dependencies:
-                    dependencies_str += d + ", "
-                # notify user
-                self.popup_message("Additional libraries needed", "The following libraries will be installed: \n"
-                                   + dependencies_str)
-                # do some wonky stuff to get the correct path to python executable..
-                maya_exe = sys.executable.split(".")[0] + "py.exe"
-                maya_exe = maya_exe.replace("\\", "/")
-                dependencies_script = "script_loader_install_dependencies.py"
-                # install dependencies
-                command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
-                os.system('"' + command + '"')
-                try:
-                    pkg_resources.require(dependencies)
-                    print "Installed missing dependencies."
-                except:
-                    print "Couldn't install dependencies! uninstalling.."  # POPUP
-                    self.uninstall_local(selected_item)
-
-        except Exception as e:
-            print "Failed to install " + last_folder + ", " + str(e)
-
-    def uninstall_local(self, selected_item):
-        """
-        Delete folder where script is
-        Args:
-            selected_item: selected item in treewidget menu
-        """
-        maya_scripts_folder = self.get_maya_scripts_folder()
-        last_folder = str(selected_item).split("/")
-        last_folder = last_folder[-1]
-        if len(last_folder) > 2:
-            target_folder = maya_scripts_folder + "/" + last_folder
-            print "Uninstalling " + target_folder
-            shutil.rmtree(target_folder)
-        self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
-        self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
-
-    def popup_message(self, title, message):
-        """
-        A popup message
-        Args:
-            title: Title of the popup message
-            message: Body of the popup message
-        """
-        QtWidgets.QMessageBox.information(self, title, message)
-        
-
-
-    def message_query(self, title, message):
-        """
-        Popup to ask user input
-        Args:
-            title: Title of the popup
-            message: Message of the popup
-        Returns: True / False for the user's answer
-        """
-        result = QtWidgets.QMessageBox.question(self, title, message,
-                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                                QtWidgets.QMessageBox.No)
-        if result == QtWidgets.QMessageBox.StandardButton.Yes:
-            answer = True
-        else:
-            answer = False
-        return answer
-
     def get_update_status(self):
         """
         Get status of current item (true if outdated)
@@ -329,81 +312,109 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             foo = imp.load_source('module.name', version_file_local)
             local_version = str(foo.__version__)
             if LooseVersion(db_version) > LooseVersion(local_version):
-                print "The following script is outdated:  " + final_folder + " - db: " + db_version + " local: " + local_version
+                self.log_message("The following script is outdated:  " + final_folder + " - db: " + db_version + " local: " + local_version)
                 version_outdated = True
         except Exception as e:
-            print "could not find version number in " + version_file_local + " " + str(e)
+            self.log_message("could not find version number in " + version_file_local + " " + str(e))
 
         return local_version, db_version, version_outdated
 
-    def update_tree(self):
-        """
-        Update the treewidget list
-        db column info: 0=ID, 1=name, 2=path, 3=category
-        widget item data: 32=path, 33=version, 34=True if outdated, 35=True if script item
-        """
-        self.treeWidget.clear()
-
-        # get db here
-        db_entries = self.sll.get_database()
-        categories = self.sll.get_categories(db_entries)
-
-        for category in categories:
-            # create root items for categories
-            cat_item = QtWidgets.QTreeWidgetItem(self.treeWidget)
-            cat_item.setText(0, category)
-            cat_item.setData(0, 35, False)  # not a script item
-            # add entries to categories
-            for db_row in db_entries:
-                for db_column in db_row:
-                        if db_column[3] == category:
-                            script_item = QtWidgets.QTreeWidgetItem(cat_item)
-                            # set tree item data
-                            script_item.setData(0,32, db_column[2])  # path
-                            script_item.setData(0, 33, db_column[3])  # category
-                            script_item.setData(0, 35, True)  # script item
-                            script_item.setForeground(0, self.create_brushes()[1])
-                            # Check if file already exists
-                            maya_script_folder = self.get_maya_scripts_folder()
-                            split_string = str(db_column[2]).split("/")
-                            script_name = split_string[-1]
-                            target_folder = maya_script_folder + "/" + script_name
-                            # get versions
-                            version_local, version_db, version_outdated = self.get_version(db_column[2])
-                            # Set item text
-                            script_item.setText(0, db_column[1] + " " + version_db)
-                            # if folder exists
-                            if os.path.exists(target_folder):
-                                if version_outdated:  # if version is outdated
-                                    script_item.setData(0, 34, True)  # set outdated status to true
-                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color green
-                                    script_item.setText(0, db_column[1] + " - New version available: " + version_db)
-                                else:
-                                    script_item.setData(0, 34, False)  # set outdated status to false
-                                    # set text color white + bold
-                                    script_item.setForeground(0, self.create_brushes()[0])
-                                    script_item.setFont(0, self.create_fonts()[0])
-        # expand the tree
-        self.treeWidget.expandToDepth(0)
-
-    @staticmethod
-    def launch_script(maya_folder, script_path, installed):
+    def launch_script(self, maya_script_folder, script_path, installed):
         """
         Launch script in maya
         Args:
+            maya_script_folder: path to maya scripts folder
             script_path: path to the script
             installed: true if its installed
         """
         if not os.path.isdir(script_path) or not installed:
-            print "Script is not installed."
+            self.log_message("Script is not installed.")
             return
         script_folder_name = str(script_path).split("/")
-        final_folder = maya_folder + "/" + script_folder_name[-1]
-        print "Running init file in folder: " + final_folder
+        final_folder = maya_script_folder + "/" + script_folder_name[-1]
+        self.log_message("Running init file in folder: " + final_folder)
         imp.load_source('module.name', final_folder + "/__init__.py")
 
+    @staticmethod
+    def create_brushes():
+        """
+        Create color brushes for text fields
+        Returns: brushes as an array
+        """
+        # white brush
+        brushes = []
+        brush_white = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush_white.setStyle(QtCore.Qt.NoBrush)
+        brushes.append(brush_white)
+        # gray brush
+        brush_gray = QtGui.QBrush(QtGui.QColor(128, 128, 128))
+        brush_gray.setStyle(QtCore.Qt.NoBrush)
+        brushes.append(brush_gray)
+        # green brush
+        brush_green = QtGui.QBrush(QtGui.QColor(156, 255, 39))
+        brush_green.setStyle(QtCore.Qt.NoBrush)
+        brushes.append(brush_green)
 
-class ScriptLoaderLogic():
+        return brushes
+
+    @staticmethod
+    def create_fonts():
+        """
+        bold/normal font
+        Returns: fonts as an array
+        """
+        # bold font
+        fonts = []
+        font_bold = QtGui.QFont()
+        font_bold.setBold(True)
+        fonts.append(font_bold)
+        # regular font
+        font_normal = QtGui.QFont()
+        font_normal.setBold(True)
+        fonts.append(font_normal)
+
+        return fonts
+
+    @staticmethod
+    def log_message(message):
+        """
+        Print log message to console, log textbox and file
+        Args:
+            message: log message
+        """
+        print message
+        # TODO add log tab & file
+
+    def popup_message(self, title, message):
+        """
+        A popup message
+        Args:
+            title: Title of the popup message
+            message: Body of the popup message
+        """
+        QtWidgets.QMessageBox.information(self, title, message)
+        self.log_message(title + ", " + message)
+
+    def message_query(self, title, message):
+        """
+        Popup to ask user input
+        Args:
+            title: Title of the popup
+            message: Message of the popup
+        Returns: True / False for the user's answer
+        """
+        result = QtWidgets.QMessageBox.question(self, title, message,
+                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                                QtWidgets.QMessageBox.No)
+        if result == QtWidgets.QMessageBox.StandardButton.Yes:
+            answer = True
+        else:
+            answer = False
+        self.log_message(title + ", " + message + ", " + str(answer))
+        return answer
+
+
+class Database():
     """
     Logic class for script loader TODO: move more stuff here
     """

@@ -14,7 +14,7 @@ TODO: add Non Editable ? checkboxes
 TODO: Add pip_test contents to installation def
     * figure out how to run "main" function..?'
 
-TODO: add user popups
+TODO: add user popups + log tab
 TODO: make UI Dockable and Scalable
 '''
 

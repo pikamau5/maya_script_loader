@@ -24,3 +24,4 @@ Features:
 
 To do:
 * Integrate error reporting to all scripts..?
+* Use .whl files instead of folders?

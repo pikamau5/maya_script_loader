@@ -30,6 +30,7 @@ from zipfile import ZipFile
 from pip._internal.utils.misc import get_installed_distributions
 import zipfile
 import glob
+import re
 
 
 # override exception hook
@@ -232,7 +233,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         #script_loader_install_whl.install_dependencies(selected_item)
 
 
-    def install_local(self, selected_path, maya_script_folder):
+    def install_local(self, selected_path, maya_script_folder, selected_name):
         """
         Copy the script to the local maya scripts folder.
         Args:
@@ -250,6 +251,42 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             for file in archive.namelist():
                 archive.extract(file, maya_script_folder)
             self.update_tree()
+
+        # check dependencies
+        name_underscore = selected_name.replace("-", "_")
+
+        dependencies = []
+        for n in glob.glob(maya_script_folder + "/*"):
+            n = n.replace("\\", "/")
+            if n.endswith(".dist-info"):
+                last_folder = n.split("/")
+                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
+                    with open(n + "/METADATA") as f:
+                        for x in f.readlines():
+                            if str(x).startswith("Requires-Dist: "):
+                                dependency = str(x).split(": ")[-1].rstrip("\n\r")
+                                dependency = re.sub('[ ()]', '', dependency)
+                                dependencies.append(dependency)
+
+        dep_out = ""
+        for d in dependencies:
+            dep_out += str(d) + "/"
+
+        print dep_out
+        # INSTALL DEPENDENCY
+        try:
+            pkg_resources.require(dep_out)
+        except:
+            print "failed dependencies test. installing dependencies.."
+            # do some wonky stuff to get the correct path to python executable..
+            maya_exe = sys.executable.split(".")[0] + "py.exe"
+            maya_exe = maya_exe.replace("\\", "/")
+            dependencies_script = "script_loader_install_dependencies.py"
+            # install dependencies
+            command = "\"" + str(
+                maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + dep_out + "\""
+            os.system('"' + command + '"')
+
 
         '''
         # check dependencies:
@@ -368,7 +405,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             self.menu.addAction(RunAction)
         if installed and outdated:
             installAction = QtWidgets.QAction("Update", self)
-            installAction.triggered.connect(lambda: self.update_local(selected_path))
+            installAction.triggered.connect(lambda: self.update_local(selected_path, maya_script_folder, name))
             self.menu.addAction(installAction)
         if installed:
             UninstallAction = QtWidgets.QAction("Uninstall", self)
@@ -376,13 +413,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             self.menu.addAction(UninstallAction)
         else:
             UninstallAction = QtWidgets.QAction("Install", self)
-            UninstallAction.triggered.connect(lambda: self.install_local(selected_path, maya_script_folder))
+            UninstallAction.triggered.connect(lambda: self.install_local(selected_path, maya_script_folder, name))
             self.menu.addAction(UninstallAction)
         self.menu.popup(QtGui.QCursor.pos())
 
-    def update_local(self, selected_path):
+    def update_local(self, selected_path, maya_script_folder, name):
         self.uninstall_local(selected_path)
-        self.install_local(selected_path)
+        self.install_local(selected_path, maya_script_folder, name)
         self.update_tree()
 
     def check_if_installed(self):

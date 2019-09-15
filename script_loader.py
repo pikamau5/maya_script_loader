@@ -98,7 +98,11 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         # get db here
         db_entries = self.database.get_database()
+
         categories = self.database.get_categories(db_entries)
+        print categories
+        whl_paths = self.database.get_folder_contents()
+        print whl_paths
 
         for category in categories:
             # create root items for categories
@@ -106,6 +110,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             cat_item.setText(0, category)
             cat_item.setData(0, 35, False)  # not a script item
             # add entries to categories
+
+            for path, cat in whl_paths.items():  # for name, age in dictionary.iteritems():  (for Python 2.x)
+                if cat == category:
+                    script_item = QtWidgets.QTreeWidgetItem(cat_item)
+                    script_item.setText(0, path)
+        return
+        '''
             for db_row in db_entries:
                 for db_column in db_row:
                         if db_column[3] == category:
@@ -123,7 +134,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
                             # get versions + text
                             # check for whl file
-                            whl = str(db_column[2]).split(".") 
+                            whl = str(db_column[2]).split(".")
                             if whl[-1] == "whl":
                                 whl = str(db_column[2]).split("/")[-1].split("-")
                                 name_whl = whl[0]
@@ -145,6 +156,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                                     # set text color white + bold
                                     script_item.setForeground(0, self.create_brushes()[0])
                                     script_item.setFont(0, self.create_fonts()[0])
+        '''
         # expand the tree
         self.treeWidget.expandToDepth(0)
 
@@ -470,6 +482,28 @@ class Database():
                 cur.execute("SELECT * FROM " + row[0])
                 all_tables.append(cur.fetchall())
             return all_tables
+
+    def get_folder_contents(self):
+        """
+        Gets the whl files from the database folder paths
+        Returns: whl paths
+        """
+        whl_files = {}
+        db = self.get_database()
+        for table in db:
+            for row in table:
+                category = row[3]
+                path = row[2]
+
+                files = []
+                # r=root, d=directories, f = files
+                for r, d, f in os.walk(path):
+                    for file in f:
+                        if '.whl' in file:
+                            #files.append(os.path.join(r, file))
+                            whl_files.update({file: category})
+        return whl_files
+
 
     @staticmethod
     def get_categories(db_table_array):

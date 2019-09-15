@@ -3,7 +3,7 @@ SyntaxEditor Code Snippet
 
 # Maya Script Loader
 ## (Work in progress)
-Installs scripts to users maya install from network drive.
+Installs scripts to users maya install from a network drive.
 
 ![enter image description here](https://raw.githubusercontent.com/pikamau5/maya_script_loader/master/screenshot.png)
 

@@ -26,6 +26,9 @@ import maya.cmds as cmds
 import excepthook_override
 import script_loader_config
 import script_loader_install_whl
+from zipfile import ZipFile
+import yaml
+
 
 # override exception hook
 ex = excepthook_override.Except()
@@ -113,9 +116,48 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
             for path, cat in whl_paths.items():  # for name, age in dictionary.iteritems():  (for Python 2.x)
                 if cat == category:
+                    # add path whl to list
                     script_item = QtWidgets.QTreeWidgetItem(cat_item)
-                    script_item.setText(0, path)
-        return
+                    # Read whl metadata TODO put in its own function
+                    archive = ZipFile(path, 'r')
+
+                    # parse the path name
+                    last_folder = str(path).split("/")
+                    name = last_folder[-1].split("-")
+                    dist_folder = name[0] + "-" + name[1] + ".dist-info"
+                    metadata = archive.open(dist_folder + '/METADATA')
+                    # get name and version from metadata
+                    name = ""
+                    version = ""
+                    for x in metadata:
+                        if str(x).startswith("Name:"):
+                            name = str(x).split(": ")[-1].rstrip("\n\r")
+                        if str(x).startswith("Version:"):
+                            version = str(x).split(": ")[-1].rstrip("\n\r")
+                    # print name
+                    script_item.setText(0, name + " " + version)
+
+                    # set additional data
+                    script_item.setData(0, 32, path)  # path
+                    script_item.setData(0, 33, cat)  # category
+                    script_item.setData(0, 35, True)  # script item
+
+                    # check if module is already installed
+                    from pip._internal.utils.misc import get_installed_distributions
+                    installed_packages = get_installed_distributions()
+                    for i in installed_packages:
+                        if str(i).startswith(name):
+                            print "SCRIPT " + str(i) + " IS INSTALLED"
+                            script_item.setFont(0, self.create_fonts()[0])  # set to bold
+                            if i == name + " " + version:
+                                    script_item.setData(0, 34, False)  # set outdated status to false
+                                    script_item.setForeground(0, self.create_brushes()[0])  # set text color to white
+
+                            else:
+                                    script_item.setData(0, 34, True)  # set outdated status to true
+                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color green
+                                    script_item.setText(0, name + " - New: " + version)
+
         '''
             for db_row in db_entries:
                 for db_column in db_row:
@@ -501,7 +543,8 @@ class Database():
                     for file in f:
                         if '.whl' in file:
                             #files.append(os.path.join(r, file))
-                            whl_files.update({file: category})
+                            whl_files.update({path + "/" + file: category})
+        print whl_files
         return whl_files
 
 

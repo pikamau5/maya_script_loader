@@ -133,7 +133,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                         if str(x).startswith("Version:"):
                             version = str(x).split(": ")[-1].rstrip("\n\r")
                     # print name
-                    script_item.setText(0, name + " " + version)
+                    script_item.setText(0, name + " - " + version)
 
                     # set additional data
                     script_item.setData(0, 32, path)  # path
@@ -215,10 +215,10 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         # INSTALL DEPENDENCY
         try:
             for d in dependencies:
-                print "Dependencies needed: " + str(d)
                 pkg_resources.require(d)
+                print "Dependencies " + str(d) + " OK."
         except:
-            print "failed dependencies test. installing dependencies.."
+            print "Some of these dependencies are not installed: " + str(d) + ". Installing.."
             # do some wonky stuff to get the correct path to python executable..
             maya_exe = sys.executable.split(".")[0] + "py.exe"
             maya_exe = maya_exe.replace("\\", "/")

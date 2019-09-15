@@ -13,7 +13,7 @@ Installs scripts to users maya install from a network drive.
 
 Features:
 
-* Load list of whl packages from remote location using database
+* Load list of whl packages from a remote location. A database defines the project folder locations and categories.
 * Install the package
 	* Extract whl to Maya scripts folder
 	* Install dependencies if needed

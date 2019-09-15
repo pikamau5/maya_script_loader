@@ -368,7 +368,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             self.menu.addAction(RunAction)
         if installed and outdated:
             installAction = QtWidgets.QAction("Update", self)
-            installAction.triggered.connect(lambda: self.install_local(selected_path))
+            installAction.triggered.connect(lambda: self.update_local(selected_path))
             self.menu.addAction(installAction)
         if installed:
             UninstallAction = QtWidgets.QAction("Uninstall", self)
@@ -379,6 +379,11 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             UninstallAction.triggered.connect(lambda: self.install_local(selected_path, maya_script_folder))
             self.menu.addAction(UninstallAction)
         self.menu.popup(QtGui.QCursor.pos())
+
+    def update_local(self, selected_path):
+        self.uninstall_local(selected_path)
+        self.install_local(selected_path)
+        self.update_tree()
 
     def check_if_installed(self):
         """

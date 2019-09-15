@@ -2,5 +2,6 @@ setup.py
 example_pkg_03.egg-info/PKG-INFO
 example_pkg_03.egg-info/SOURCES.txt
 example_pkg_03.egg-info/dependency_links.txt
+example_pkg_03.egg-info/requires.txt
 example_pkg_03.egg-info/top_level.txt
 example_pkg_3/__init__.py

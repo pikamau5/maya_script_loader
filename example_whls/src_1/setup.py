@@ -2,10 +2,13 @@ import setuptools
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+	
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
 
 setuptools.setup(
-    name="example-pkg-01",
-    version="1.2.3",
+    name="example-pkg-03",
+    version="2.2.3",
     author="HerpDerp",
     author_email="author@example.com",
     description="A small example package",
@@ -19,4 +22,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=2.7',
+	install_requires=requirements,
 )

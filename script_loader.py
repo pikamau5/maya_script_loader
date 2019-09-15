@@ -91,7 +91,10 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         installed = self.check_if_installed()
         maya_script_folder = self.get_maya_scripts_folder()
 
-        self.launch_script(maya_script_folder, path, installed)
+        b = self.treeWidget.selectedItems() # TODO clean up stuff like this
+        name = b[0].data(0, 40)
+
+        self.launch_script(maya_script_folder, name)
 
     def update_tree(self):
         """
@@ -142,6 +145,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                     script_item.setData(0, 33, cat)  # category
                     script_item.setData(0, 35, True)  # script item
                     script_item.setData(0, 36, version)  # version
+                    script_item.setData(0,40, name)  # name
 
                     # check if module is already installed ( if folder with dist_info exists )
                     installed = False
@@ -307,7 +311,30 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         Args:
             selected_item: selected item in treewidget menu
         """
+        b = self.treeWidget.selectedItems()
+        name = b[0].data(0,40)
         maya_scripts_folder = self.get_maya_scripts_folder()
+
+        name_underscore = name.replace("-", "_")
+        script_folder = ""
+        for n in glob.glob(maya_scripts_folder + "/*"):
+            n = n.replace("\\", "/")
+            if n.endswith(".dist-info"):
+                last_folder = n.split("/")
+                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
+                    fo = open(n + "/top_level.txt")
+                    with fo as f:
+                        script_folder = f.readline().rstrip("\r\n")
+                    fo.close()
+
+                    shutil.rmtree(maya_scripts_folder + "/" + script_folder)
+                    shutil.rmtree(n)
+
+        self.update_tree()
+
+
+        '''
+        
         last_folder = str(selected_item).split("/")
         last_folder = last_folder[-1]
         if len(last_folder) > 2:
@@ -316,6 +343,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             shutil.rmtree(target_folder)
         self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
         self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
+        '''
 
     def contextMenuEvent(self, selected_path, is_script_item, maya_script_folder):
         """
@@ -329,13 +357,14 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         b = self.treeWidget.selectedItems()
         installed = b[0].data(0, 37)
         outdated = b[0].data(0, 38)
+        name = b[0].data(0,40)
 
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items
             return
         if installed:
             RunAction = QtWidgets.QAction("Run", self)
-            RunAction.triggered.connect(lambda: self.launch_script(maya_script_folder, selected_path, installed))
+            RunAction.triggered.connect(lambda: self.launch_script(maya_script_folder, name))
             self.menu.addAction(RunAction)
         if installed and outdated:
             installAction = QtWidgets.QAction("Update", self)
@@ -437,21 +466,23 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         return local_version, db_version, version_outdated
 
-    def launch_script(self, maya_script_folder, script_path, installed):
+    def launch_script(self, maya_scripts_folder, name):
         """
-        Launch script in maya
+        Get top_level.txt - run __init__.py file in folder that is specified
         Args:
-            maya_script_folder: path to maya scripts folder
-            script_path: path to the script
-            installed: true if its installed
+            maya_scripts_folder: path to maya scripts folder
+            name: name of the script
         """
-        if not os.path.isdir(script_path) or not installed:
-            self.log_message("Script is not installed.")
-            return
-        script_folder_name = str(script_path).split("/")
-        final_folder = maya_script_folder + "/" + script_folder_name[-1]
-        self.log_message("Running init file in folder: " + final_folder)
-        imp.load_source('module.name', final_folder + "/__init__.py")
+        name_underscore = name.replace("-", "_")
+        for n in glob.glob(maya_scripts_folder + "/*"):
+            n = n.replace("\\", "/")
+            if n.endswith(".dist-info"):
+                last_folder = n.split("/")
+                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
+                    with open(n + "/top_level.txt") as f:
+                        x = f.readline().rstrip("\r\n")
+                        print x
+                        imp.load_source('module.name', maya_scripts_folder + "/" + x + "/__init__.py")
 
     @staticmethod
     def create_brushes():

@@ -22,12 +22,9 @@ import os, shutil, imp, sys, pkg_resources, sqlite3
 from PySide2 import QtWidgets, QtCore, QtGui
 from distutils.version import LooseVersion
 from script_loader_ui import Ui_Form
-import maya.cmds as cmds
 import excepthook_override
 import script_loader_config
-import script_loader_install_whl
 from zipfile import ZipFile
-from pip._internal.utils.misc import get_installed_distributions
 import zipfile
 import glob
 import re

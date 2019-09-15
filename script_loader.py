@@ -100,17 +100,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         widget item data: 32=path, 33=version, 34=True if outdated, 35=True if script item
         """
         self.treeWidget.clear()
-
         # get db here
         db_entries = self.database.get_database()
-
         # get maya scripts folder
         maya_scripts_folder = self.get_maya_scripts_folder()
-
         categories = self.database.get_categories(db_entries)
-
         whl_paths = self.database.get_folder_contents()
-
 
         for category in categories:
             # create root items for categories
@@ -146,15 +141,33 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                     script_item.setData(0, 32, path)  # path
                     script_item.setData(0, 33, cat)  # category
                     script_item.setData(0, 35, True)  # script item
+                    script_item.setData(0, 36, version)  # version
 
                     # check if module is already installed ( if folder with dist_info exists )
+                    installed = False
+                    installed_version = ""
                     name_underscore = name.replace("-", "_")
                     for n in glob.glob(maya_scripts_folder + "/*"):
                         n = n.replace("\\", "/")
                         if n.endswith(".dist-info"):
                             last_folder = n.split("/")
-                            if last_folder[-1].startswith(name_underscore): #TODO check also if top level folder exists
+                            if last_folder[-1].startswith(name_underscore):  #TODO check also if top level folder exists
+                                installed = True
                                 script_item.setFont(0, self.create_fonts()[0])  # set to bold
+                                script_item.setForeground(0,self.create_brushes()[2])
+                                with open(n + "/METADATA") as f:
+                                    for x in f.readlines():
+                                        if str(x).startswith("Version:"):
+                                            installed_version = str(x).split(": ")[-1].rstrip("\n\r")
+
+
+                    # check if version is oudated
+                    if installed:
+                        if LooseVersion(installed_version) < LooseVersion(version):
+                            script_item.setData(0, 34, True)  # set outdated status to true
+                            script_item.setForeground(0, self.create_brushes()[2])  # set text color green
+                            script_item.setText(0, name + " - New: " + version)
+
 
                     '''
                     installed_packages = get_installed_distributions()

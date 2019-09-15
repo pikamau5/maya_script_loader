@@ -10,19 +10,14 @@ import sys
 import ctypes, sys
 import time
 
-def pip_auto_install(dependencies):
+def pip_auto_install(dependency):
     """
     Automatically installs all requirements if pip is installed.
     """
     #requirements_file = script_folder + "/requirements.txt"
     try:
-        print "DEPENDENCIES!!!"
-        print dependencies
-        dep = dependencies.split("/")
-        for d in dep:
-            print d
-            from pip._internal import main as pip_main
-            pip_main(['install',d ]) #-Iv
+        from pip._internal import main as pip_main
+        pip_main(['install', dependency ]) #-Iv
     except ImportError:
         print("Failed to import pip. Please ensure that pip is installed.")
         sys.exit(-1)
@@ -37,13 +32,13 @@ def is_admin():
     except:
         return False
 
-def install_dependencies(dependencies):
+def install_dependencies(dependency):
     if is_admin():
         # Code of your program here
-        pip_auto_install(dependencies)
+        pip_auto_install(dependency)
     else:
         # Re-run the program with admin rights
-        ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__ + " " + dependencies), None, 1)
+        ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__ + " " + dependency), None, 1)
 
     is_admin()
 

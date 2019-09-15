@@ -266,13 +266,14 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             if str(x).startswith("Requires-Dist: "):
                                 dependency = str(x).split(": ")[-1].rstrip("\n\r")
                                 dependency = re.sub('[ ()]', '', dependency)
-                                dependencies.append(dependency)
+                                ignore_pkgs = ("PySide2", "maya", "setuptools")
+                                if dependency != "setuptools" and dependency != "maya" and dependency != "PySide2":
+                                    dependencies.append(dependency)
 
         # INSTALL DEPENDENCY
         try:
             for d in dependencies:
-                print "DEPENDENCIES"
-                print d
+                print "Dependencies needed: " + str(d)
                 pkg_resources.require(d)
         except:
             print "failed dependencies test. installing dependencies.."

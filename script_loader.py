@@ -83,7 +83,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         script_item = self.check_if_script_item()
         maya_script_folder = self.get_maya_scripts_folder()
 
-        self.contextMenuEvent(path, installed, outdated, script_item, maya_script_folder)
+        self.contextMenuEvent(path, script_item, maya_script_folder)
 
     def double_click(self):
 
@@ -160,15 +160,18 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                                         if str(x).startswith("Version:"):
                                             installed_version = str(x).split(": ")[-1].rstrip("\n\r")
 
+                    script_item.setData(0, 37, installed)  # mark if installed
 
+                    outdated = False
                     # check if version is oudated
                     if installed:
                         if LooseVersion(installed_version) < LooseVersion(version):
                             script_item.setData(0, 34, True)  # set outdated status to true
                             script_item.setForeground(0, self.create_brushes()[2])  # set text color green
                             script_item.setText(0, name + " - New: " + version)
+                            outdated = True
 
-
+                    script_item.setData(0, 38, outdated)  # mark if installed
                     '''
                     installed_packages = get_installed_distributions()
                     for i in installed_packages:
@@ -228,27 +231,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         # expand the tree
         self.treeWidget.expandToDepth(0)
 
-    def install_whl(self, selected_path, maya_script_folder):
-        """
-        Install whl file TODO: FINISH THIS!
-        Args:
-            selected_path: path to whl file
-        """
-
-        archive = zipfile.ZipFile(selected_path)
-
-        for file in archive.namelist():
-            first_folder = str(file).split("/")
-
-            #if not first_folder[0].endswith('.dist-info'):
-            archive.extract(file, maya_script_folder)
-
-
         #script_loader_install_whl.install_dependencies(selected_item)
 
-
-    def get_whl_version(self):
-        pass
 
     def install_local(self, selected_path, maya_script_folder):
         """
@@ -264,9 +248,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         if whl == "whl":
             print "whl file, installing.."
 
-            self.install_whl(selected_path, maya_script_folder)
-            return
-        return
+            archive = zipfile.ZipFile(selected_path)
+            for file in archive.namelist():
+                archive.extract(file, maya_script_folder)
+            self.update_tree()
+
+        '''
         last_folder = ""
         try:
             last_folder = str(selected_path).split("/")
@@ -312,6 +299,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         except Exception as e:
             self.log_message("Failed to install " + last_folder + ", " + str(e))
+        '''
 
     def uninstall_local(self, selected_item):
         """
@@ -329,7 +317,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
         self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
 
-    def contextMenuEvent(self, selected_path, installed, outdated, is_script_item, maya_script_folder):
+    def contextMenuEvent(self, selected_path, is_script_item, maya_script_folder):
         """
         Context menu for treewidget items
         Args:
@@ -338,6 +326,9 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             is_script_item: is is a script item?
             maya_script_folder: path to local maya script folder
         """
+        b = self.treeWidget.selectedItems()
+        installed = b[0].data(0, 37)
+        outdated = b[0].data(0, 38)
 
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items

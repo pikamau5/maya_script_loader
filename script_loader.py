@@ -29,6 +29,7 @@ import script_loader_install_whl
 from zipfile import ZipFile
 from pip._internal.utils.misc import get_installed_distributions
 import zipfile
+import glob
 
 
 # override exception hook
@@ -103,10 +104,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         # get db here
         db_entries = self.database.get_database()
 
+        # get maya scripts folder
+        maya_scripts_folder = self.get_maya_scripts_folder()
+
         categories = self.database.get_categories(db_entries)
-        print categories
+
         whl_paths = self.database.get_folder_contents()
-        print whl_paths
+
 
         for category in categories:
             # create root items for categories
@@ -143,8 +147,16 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                     script_item.setData(0, 33, cat)  # category
                     script_item.setData(0, 35, True)  # script item
 
-                    # check if module is already installed
+                    # check if module is already installed ( if folder with dist_info exists )
+                    name_underscore = name.replace("-", "_")
+                    for n in glob.glob(maya_scripts_folder + "/*"):
+                        n = n.replace("\\", "/")
+                        if n.endswith(".dist-info"):
+                            last_folder = n.split("/")
+                            if last_folder[-1].startswith(name_underscore): #TODO check also if top level folder exists
+                                script_item.setFont(0, self.create_fonts()[0])  # set to bold
 
+                    '''
                     installed_packages = get_installed_distributions()
                     for i in installed_packages:
                         if str(i).startswith(name):
@@ -158,7 +170,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                                     script_item.setData(0, 34, True)  # set outdated status to true
                                     script_item.setForeground(0, self.create_brushes()[2])  # set text color green
                                     script_item.setText(0, name + " - New: " + version)
-
+                    '''
         '''
             for db_row in db_entries:
                 for db_column in db_row:
@@ -209,8 +221,14 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         Args:
             selected_path: path to whl file
         """
-        with zipfile.ZipFile(selected_path, 'r') as zip_ref:
-            zip_ref.extractall(maya_script_folder)
+
+        archive = zipfile.ZipFile(selected_path)
+
+        for file in archive.namelist():
+            first_folder = str(file).split("/")
+
+            #if not first_folder[0].endswith('.dist-info'):
+            archive.extract(file, maya_script_folder)
 
 
         #script_loader_install_whl.install_dependencies(selected_item)
@@ -549,7 +567,6 @@ class Database():
                     for file in f:
                         if '.whl' in file:
                             whl_files.update({path + "/" + file: category}) # TODO this will break if there are other files?
-        print whl_files
         return whl_files
 
 

@@ -13,15 +13,17 @@ Installs scripts to users maya install from network drive.
 
 Features:
 
-* Loads list of scripts from database
-* Installs the script
-	* Copy script folder to Maya scripts folder
-	* Installs dependencies from requirements.txt
+* Load list of whl packages from remote location using database
+* Install the package
+	* Extract whl to Maya scripts folder
+	* Install dependencies if needed
 * Uninstall
-* Run the script
+* Run
+* Check if the script is up to date
 
-* Checks if the script is up to date
-
-To do:
-* Integrate error reporting to all scripts..?
-* Use .whl files instead of folders?
+Requirements for whl:
+* setup.py must have following fields:
+	* name
+	* version
+	* install_requires
+* check example_package_src folder for examples

@@ -1,0 +1,14 @@
+Metadata-Version: 1.2
+Name: example-pkg-02
+Version: 1.2.3
+Summary: A small example package
+Home-page: https://github.com/pypa/sampleproject
+Author: HerpDerp
+Author-email: author@example.com
+License: UNKNOWN
+Description: # example package
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=2.7

@@ -1,0 +1,1 @@
+c:\python27\python.exe setup.py sdist bdist_wheel

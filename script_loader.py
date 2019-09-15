@@ -27,7 +27,8 @@ import excepthook_override
 import script_loader_config
 import script_loader_install_whl
 from zipfile import ZipFile
-import yaml
+from pip._internal.utils.misc import get_installed_distributions
+import zipfile
 
 
 # override exception hook
@@ -143,13 +144,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                     script_item.setData(0, 35, True)  # script item
 
                     # check if module is already installed
-                    from pip._internal.utils.misc import get_installed_distributions
+
                     installed_packages = get_installed_distributions()
                     for i in installed_packages:
                         if str(i).startswith(name):
-                            print "SCRIPT " + str(i) + " IS INSTALLED"
+
                             script_item.setFont(0, self.create_fonts()[0])  # set to bold
-                            if i == name + " " + version:
+                            if str(i) == name + " " + version:
                                     script_item.setData(0, 34, False)  # set outdated status to false
                                     script_item.setForeground(0, self.create_brushes()[0])  # set text color to white
 
@@ -202,41 +203,46 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         # expand the tree
         self.treeWidget.expandToDepth(0)
 
-    def install_whl(self, selected_item):
+    def install_whl(self, selected_path, maya_script_folder):
         """
         Install whl file TODO: FINISH THIS!
         Args:
-            selected_item: path to whl file
+            selected_path: path to whl file
         """
-        script_loader_install_whl.install_dependencies(selected_item)
+        with zipfile.ZipFile(selected_path, 'r') as zip_ref:
+            zip_ref.extractall(maya_script_folder)
+
+
+        #script_loader_install_whl.install_dependencies(selected_item)
 
 
     def get_whl_version(self):
         pass
 
-    def install_local(self, selected_item, maya_script_folder):
+    def install_local(self, selected_path, maya_script_folder):
         """
         Copy the script to the local maya scripts folder.
         Args:
-            selected_item: the selected item in the treewidget menu
+            selected_path: the selected item in the treewidget menu
             maya_script_folder: path to local maya script folder
         """
-        print selected_item
-        whl = str(selected_item).split(".")
+        print selected_path
+        whl = str(selected_path).split(".")
         whl = whl[-1]
         print whl
         if whl == "whl":
             print "whl file, installing.."
-            self.install_whl(selected_item)
-            return
 
+            self.install_whl(selected_path, maya_script_folder)
+            return
+        return
         last_folder = ""
         try:
-            last_folder = str(selected_item).split("/")
+            last_folder = str(selected_path).split("/")
             last_folder = last_folder[-1]
             new_folder = maya_script_folder + "/" + last_folder
             # copy the folder
-            shutil.copytree(selected_item, new_folder)
+            shutil.copytree(selected_path, new_folder)
             # change text color to be white
             self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
             self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
@@ -271,7 +277,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                     self.log_message("Installed missing dependencies.")
                 except:
                     self.log_message("Couldn't install dependencies! uninstalling..")
-                    self.uninstall_local(selected_item)
+                    self.uninstall_local(selected_path)
 
         except Exception as e:
             self.log_message("Failed to install " + last_folder + ", " + str(e))
@@ -542,8 +548,7 @@ class Database():
                 for r, d, f in os.walk(path):
                     for file in f:
                         if '.whl' in file:
-                            #files.append(os.path.join(r, file))
-                            whl_files.update({path + "/" + file: category})
+                            whl_files.update({path + "/" + file: category}) # TODO this will break if there are other files?
         print whl_files
         return whl_files
 

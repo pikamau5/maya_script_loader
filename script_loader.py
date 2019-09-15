@@ -270,7 +270,10 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
 
         # INSTALL DEPENDENCY
         try:
-            pkg_resources.require(dependencies)
+            for d in dependencies:
+                print "DEPENDENCIES"
+                print d
+                pkg_resources.require(d)
         except:
             print "failed dependencies test. installing dependencies.."
             # do some wonky stuff to get the correct path to python executable..
@@ -278,10 +281,12 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             maya_exe = maya_exe.replace("\\", "/")
             dependencies_script = "script_loader_install_dependencies.py"
             # install dependencies
+            dependencies_string  = ""
             for d in dependencies:
-                command = "\"" + str(
-                    maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + d + "\""
-                os.system('"' + command + '"')
+                dependencies_string += d + " "
+            command = "\"" + str(
+                maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + dependencies_string + "\""
+            os.system('"' + command + '"')
 
 
         '''

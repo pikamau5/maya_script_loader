@@ -5,7 +5,12 @@ with open("README.md", "r") as fh:
 	
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
-
+r_no_version = []
+for r in requirements:
+	n = r.split("=")
+	r_no_version.append(n[0])
+requirements = r_no_version
+	
 setuptools.setup(
     name="example-pkg-03",
     version="2.2.3",

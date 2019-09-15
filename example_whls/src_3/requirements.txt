@@ -1,2 +1,2 @@
-setuptools==28.8.0
-numpy
+Django
+setuptools==41.2.0

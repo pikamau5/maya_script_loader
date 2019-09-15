@@ -78,19 +78,13 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     def right_click(self):
 
         path = self.get_selected_path()
-        installed = self.check_if_installed()
-        outdated = self.get_update_status()
         script_item = self.check_if_script_item()
         maya_script_folder = self.get_maya_scripts_folder()
-
         self.contextMenuEvent(path, script_item, maya_script_folder)
 
     def double_click(self):
 
-        path = self.my_selected_path
-        installed = self.check_if_installed()
         maya_script_folder = self.get_maya_scripts_folder()
-
         b = self.treeWidget.selectedItems() # TODO clean up stuff like this
         name = b[0].data(0, 40)
 
@@ -172,7 +166,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                         if LooseVersion(installed_version) < LooseVersion(version):
                             script_item.setData(0, 34, True)  # set outdated status to true
                             script_item.setForeground(0, self.create_brushes()[2])  # set text color green
-                            script_item.setText(0, name + " - New: " + version)
+                            script_item.setText(0, name + " - New version: " + version)
                             outdated = True
 
                     script_item.setData(0, 38, outdated)  # mark if installed
@@ -258,6 +252,40 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             self.update_tree()
 
         '''
+        # check dependencies:
+        requirements_file = new_folder + "/requirements.txt"
+        if not os.path.isfile(requirements_file):  # check that file exists
+            self.log_message("requirements.txt not found.")
+            return
+        dependencies = [line.rstrip('\r\n') for line in open(new_folder + "/requirements.txt")]
+        # Throw exception if dependencies are not met
+        self.log_message("Dependencies: " + str(dependencies))
+        try:
+            pkg_resources.require(dependencies)
+            self.log_message("Dependencies are OK.")
+        except:
+            dependencies_str = ""
+            for d in dependencies:
+                dependencies_str += d + ", "
+            # notify user
+            self.popup_message("Additional libraries needed", "The following libraries will be installed: \n"
+                               + dependencies_str)
+            # do some wonky stuff to get the correct path to python executable..
+            maya_exe = sys.executable.split(".")[0] + "py.exe"
+            maya_exe = maya_exe.replace("\\", "/")
+            dependencies_script = "script_loader_install_dependencies.py"
+            # install dependencies
+            command = "\"" + str(
+                maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
+            os.system('"' + command + '"')
+            try:
+                pkg_resources.require(dependencies)
+                self.log_message("Installed missing dependencies.")
+            except:
+                self.log_message("Couldn't install dependencies! uninstalling..")
+                self.uninstall_local(selected_path)
+            '''
+        '''
         last_folder = ""
         try:
             last_folder = str(selected_path).split("/")
@@ -269,37 +297,9 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
             self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
             self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
             self.log_message("Installed " + last_folder + " success!")
-            # check dependencies:
-            requirements_file = new_folder + "/requirements.txt"
-            if not os.path.isfile(requirements_file):  # check that file exists
-                self.log_message("requirements.txt not found.")
-                return
-            dependencies = [line.rstrip('\r\n') for line in open(new_folder + "/requirements.txt")]
-            # Throw exception if dependencies are not met
-            self.log_message("Dependencies: " + str(dependencies))
-            try:
-                pkg_resources.require(dependencies)
-                self.log_message("Dependencies are OK.")
-            except:
-                dependencies_str = ""
-                for d in dependencies:
-                    dependencies_str += d + ", "
-                # notify user
-                self.popup_message("Additional libraries needed", "The following libraries will be installed: \n"
-                                   + dependencies_str)
-                # do some wonky stuff to get the correct path to python executable..
-                maya_exe = sys.executable.split(".")[0] + "py.exe"
-                maya_exe = maya_exe.replace("\\", "/")
-                dependencies_script = "script_loader_install_dependencies.py"
-                # install dependencies
-                command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
-                os.system('"' + command + '"')
-                try:
-                    pkg_resources.require(dependencies)
-                    self.log_message("Installed missing dependencies.")
-                except:
-                    self.log_message("Couldn't install dependencies! uninstalling..")
-                    self.uninstall_local(selected_path)
+            
+            
+            
 
         except Exception as e:
             self.log_message("Failed to install " + last_folder + ", " + str(e))

@@ -171,67 +171,9 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                             outdated = True
 
                     script_item.setData(0, 38, outdated)  # mark if installed
-                    '''
-                    installed_packages = get_installed_distributions()
-                    for i in installed_packages:
-                        if str(i).startswith(name):
 
-                            script_item.setFont(0, self.create_fonts()[0])  # set to bold
-                            if str(i) == name + " " + version:
-                                    script_item.setData(0, 34, False)  # set outdated status to false
-                                    script_item.setForeground(0, self.create_brushes()[0])  # set text color to white
-
-                            else:
-                                    script_item.setData(0, 34, True)  # set outdated status to true
-                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color green
-                                    script_item.setText(0, name + " - New: " + version)
-                    '''
-        '''
-            for db_row in db_entries:
-                for db_column in db_row:
-                        if db_column[3] == category:
-                            script_item = QtWidgets.QTreeWidgetItem(cat_item)
-                            # set tree item data
-                            script_item.setData(0,32, db_column[2])  # path
-                            script_item.setData(0, 33, db_column[3])  # category
-                            script_item.setData(0, 35, True)  # script item
-                            script_item.setForeground(0, self.create_brushes()[1])
-                            # Check if file already exists
-                            maya_script_folder = self.get_maya_scripts_folder()
-                            split_string = str(db_column[2]).split("/")
-                            script_name = split_string[-1]
-                            target_folder = maya_script_folder + "/" + script_name
-
-                            # get versions + text
-                            # check for whl file
-                            whl = str(db_column[2]).split(".")
-                            if whl[-1] == "whl":
-                                whl = str(db_column[2]).split("/")[-1].split("-")
-                                name_whl = whl[0]
-                                version_whl = whl[1]
-                                script_item.setText(0, name_whl + " " + version_whl)
-                            else:
-                                # if not a whl file
-                                version_local, version_db, version_outdated = self.get_version(db_column[2])
-                                # Set item text
-                                script_item.setText(0, db_column[1] + " " + version_db)
-                            # if folder exists
-                            if os.path.exists(target_folder):
-                                if version_outdated:  # if version is outdated
-                                    script_item.setData(0, 34, True)  # set outdated status to true
-                                    script_item.setForeground(0, self.create_brushes()[2])  # set text color green
-                                    script_item.setText(0, db_column[1] + " - New version available: " + version_db)
-                                else:
-                                    script_item.setData(0, 34, False)  # set outdated status to false
-                                    # set text color white + bold
-                                    script_item.setForeground(0, self.create_brushes()[0])
-                                    script_item.setFont(0, self.create_fonts()[0])
-        '''
         # expand the tree
         self.treeWidget.expandToDepth(0)
-
-        #script_loader_install_whl.install_dependencies(selected_item)
-
 
     def install_local(self, selected_path, maya_script_folder, selected_name):
         """
@@ -289,61 +231,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                 maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + dependencies_string + "\""
             os.system('"' + command + '"')
 
-
-        '''
-        # check dependencies:
-        requirements_file = new_folder + "/requirements.txt"
-        if not os.path.isfile(requirements_file):  # check that file exists
-            self.log_message("requirements.txt not found.")
-            return
-        dependencies = [line.rstrip('\r\n') for line in open(new_folder + "/requirements.txt")]
-        # Throw exception if dependencies are not met
-        self.log_message("Dependencies: " + str(dependencies))
-        try:
-            pkg_resources.require(dependencies)
-            self.log_message("Dependencies are OK.")
-        except:
-            dependencies_str = ""
-            for d in dependencies:
-                dependencies_str += d + ", "
-            # notify user
-            self.popup_message("Additional libraries needed", "The following libraries will be installed: \n"
-                               + dependencies_str)
-            # do some wonky stuff to get the correct path to python executable..
-            maya_exe = sys.executable.split(".")[0] + "py.exe"
-            maya_exe = maya_exe.replace("\\", "/")
-            dependencies_script = "script_loader_install_dependencies.py"
-            # install dependencies
-            command = "\"" + str(
-                maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \"" + new_folder + "\""
-            os.system('"' + command + '"')
-            try:
-                pkg_resources.require(dependencies)
-                self.log_message("Installed missing dependencies.")
-            except:
-                self.log_message("Couldn't install dependencies! uninstalling..")
-                self.uninstall_local(selected_path)
-            '''
-        '''
-        last_folder = ""
-        try:
-            last_folder = str(selected_path).split("/")
-            last_folder = last_folder[-1]
-            new_folder = maya_script_folder + "/" + last_folder
-            # copy the folder
-            shutil.copytree(selected_path, new_folder)
-            # change text color to be white
-            self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[0])
-            self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[0])
-            self.log_message("Installed " + last_folder + " success!")
-            
-            
-            
-
-        except Exception as e:
-            self.log_message("Failed to install " + last_folder + ", " + str(e))
-        '''
-
     def uninstall_local(self, selected_item):
         """
         Delete folder where script is
@@ -370,19 +257,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
                     shutil.rmtree(n)
 
         self.update_tree()
-
-
-        '''
-        
-        last_folder = str(selected_item).split("/")
-        last_folder = last_folder[-1]
-        if len(last_folder) > 2:
-            target_folder = maya_scripts_folder + "/" + last_folder
-            self.log_message("Uninstalling " + target_folder)
-            shutil.rmtree(target_folder)
-        self.treeWidget.selectedItems()[0].setForeground(0, self.create_brushes()[1])
-        self.treeWidget.selectedItems()[0].setFont(0, self.create_fonts()[1])
-        '''
 
     def contextMenuEvent(self, selected_path, is_script_item, maya_script_folder):
         """

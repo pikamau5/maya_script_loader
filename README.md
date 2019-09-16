@@ -1,9 +1,6 @@
-
-SyntaxEditor Code Snippet
-
 # Maya Script Loader
 ## (Work in progress)
-Installs scripts to users maya install from a network drive.
+Installs scripts to user's local Maya scripts folder from a network drive.
 
 ![enter image description here](https://raw.githubusercontent.com/pikamau5/maya_script_loader/master/screenshot.png)
 
@@ -32,9 +29,14 @@ How to use:
 
 * Copy the script_loader_pkg (in pkg folder) to maya scripts folder.
 * Run with command:
+
 import script_loader_pkg
 reload(script_loader_pkg)
 
 * the installed scripts will be copied into this folder.
 
 * Set the correct path to the database in script_loader_config.py
+
+Requirements:
+
+* Pip

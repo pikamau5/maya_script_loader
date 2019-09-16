@@ -27,3 +27,14 @@ Requirements for whl:
 	* version
 	* install_requires
 * check example_package_src folder for examples
+
+How to use:
+
+* Copy the script_loader_pkg (in pkg folder) to maya scripts folder.
+* Run with command:
+import script_loader_pkg
+reload(script_loader_pkg)
+
+* the installed scripts will be copied into this folder.
+
+* Set the correct path to the database in script_loader_config.py

@@ -30,9 +30,9 @@ import glob
 import re
 from PySide2 import QtWidgets, QtCore, QtGui
 from distutils.version import LooseVersion
-from script_loader_ui import Ui_Form
+from script_loader_pkg.script_loader_ui import Ui_Form
 import excepthook_override
-import script_loader_config
+import script_loader_pkg.script_loader_config as script_loader_config
 
 # override exception hook
 ex = excepthook_override.Except()
@@ -483,6 +483,4 @@ class Database():
         return categories
 
 
-exportUi = ScriptLoaderUI()
-exportUi.setup_ui()
-exportUi.show()
+

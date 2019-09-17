@@ -32,10 +32,9 @@ from PySide2 import QtWidgets, QtCore, QtGui
 from distutils.version import LooseVersion
 import script_loader_pkg.script_loader_ui as script_loader_ui
 reload(script_loader_ui)
-
-#import excepthook_override
 import script_loader_pkg.script_loader_config as script_loader_config
 
+#import excepthook_override
 # override exception hook
 #ex = excepthook_override.Except()
 #ex.run_excepthook(os.path.basename(__file__))
@@ -102,8 +101,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
     def get_metadata(self):
         pass
 
-
-
     def update_tree(self):
         """
         Update the treewidget list
@@ -120,7 +117,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
             36 = version
             40 = name
         """
-        self.database.check_for_duplicates()  # check if there are duplicate packages
+        duplicates = self.database.check_for_duplicates()  # check if there are duplicate packages
         self.treeWidget.clear()  # clear the tree
         db_entries = self.database.get_database()  # get the database
         maya_scripts_folder = self.get_maya_scripts_folder()  # get the maya scripts folder
@@ -185,6 +182,11 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
                             outdated = True
 
                     script_item.setData(0, 38, outdated)  # mark if installed
+
+                    for d in duplicates:
+                        if name_underscore == d:
+                            script_item.setForeground(0, self.create_brushes()[3])  # set text color yellow
+                            script_item.setText(0, name + " - Duplicate!: " + version)
         self.treeWidget.expandToDepth(0)  # expand the tree
 
     def contextMenuEvent(self, selected_path, is_script_item, maya_script_folder):
@@ -512,6 +514,7 @@ class Database():
         """
         db = self.get_folder_contents()
         db_keys = []
+        duplicate_list = []
         # get project name (ignore version number)
         for key in db:
             key = str(key).split("/")
@@ -527,9 +530,11 @@ class Database():
                     continue
                 if i == n:
                     duplicates = True
+                    duplicate_list.append(n)
                 counter2 += 1
             counter1 += 1
         if duplicates:
             print "Warning: Duplicate package found! this might cause some issues."
         else:
             print "No duplicate packages found."
+        return duplicate_list

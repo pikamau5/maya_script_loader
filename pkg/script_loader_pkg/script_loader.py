@@ -509,7 +509,7 @@ class Database():
     def check_for_duplicates(self):
         """
         Check if there are duplicate files in the project
-        Returns:
+        Returns: list of duplicate items
 
         """
         db = self.get_folder_contents()

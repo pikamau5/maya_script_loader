@@ -39,4 +39,4 @@ reload(script_loader_pkg)
 
 Requirements:
 
-* Pip
+* Pip asdasd

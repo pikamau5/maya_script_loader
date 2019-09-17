@@ -33,12 +33,12 @@ from distutils.version import LooseVersion
 import script_loader_pkg.script_loader_ui as script_loader_ui
 reload(script_loader_ui)
 
-import excepthook_override
+#import excepthook_override
 import script_loader_pkg.script_loader_config as script_loader_config
 
 # override exception hook
-ex = excepthook_override.Except()
-ex.run_excepthook(os.path.basename(__file__))
+#ex = excepthook_override.Except()
+#ex.run_excepthook(os.path.basename(__file__))
 
 
 class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):

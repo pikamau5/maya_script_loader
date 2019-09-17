@@ -34,10 +34,19 @@ from script_loader_pkg.script_loader_ui import Ui_Form
 import excepthook_override
 import script_loader_pkg.script_loader_config as script_loader_config
 
+from script_loader_pkg.script_loader_ui_dockable import MainWindow as MW
+
 # override exception hook
 ex = excepthook_override.Except()
 ex.run_excepthook(os.path.basename(__file__))
 
+import script_loader_ui_dockable
+reload(script_loader_ui_dockable)
+
+class Dockable():
+    def main(self):
+        w = MW()
+        w.show(dockable=True, floating=False, area='left')
 
 class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
     """

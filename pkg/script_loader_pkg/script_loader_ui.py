@@ -9,7 +9,13 @@
 # WARNING! All changes made in this file will be lost!
 
 from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtUiTools, QtWidgets
+import shiboken2 as shiboken
 
+import maya.cmds as cmds
+import maya.OpenMayaUI as MayaUI
+
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 class Ui_Form(object):
 
@@ -53,9 +59,6 @@ class Ui_Form(object):
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
-
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Script Loader", None, -1))
         self.update_btn.setText(QtWidgets.QApplication.translate("Form", "Reload database", None, -1))
@@ -74,6 +77,8 @@ class Ui_Form(object):
                                                                          "By Laura K - www.laurakart.fi"
                                                                          , None,  -1))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtWidgets.QApplication.translate("Form", "Info", None, -1))
+
+
 
 
 if __name__ == "__main__":

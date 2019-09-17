@@ -102,6 +102,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
     def get_metadata(self):
         pass
 
+
+
     def update_tree(self):
         """
         Update the treewidget list
@@ -118,6 +120,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
             36 = version
             40 = name
         """
+        self.database.check_for_duplicates()  # check if there are duplicate packages
         self.treeWidget.clear()  # clear the tree
         db_entries = self.database.get_database()  # get the database
         maya_scripts_folder = self.get_maya_scripts_folder()  # get the maya scripts folder
@@ -184,123 +187,59 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
                     script_item.setData(0, 38, outdated)  # mark if installed
         self.treeWidget.expandToDepth(0)  # expand the tree
 
-    def install_local(self, selected_path, maya_script_folder, selected_name):
-        """
-        Copy the script to the local maya scripts folder.
-        Args:
-            selected_path: the selected item in the treewidget menu
-            maya_script_folder: path to local maya script folder
-            selected_name: name of the selected item
-        """
-        print selected_path
-        whl = str(selected_path).split(".")
-        whl = whl[-1]
-        print whl
-        if whl == "whl":  # check if file is a whl
-            print "Installing " + str(selected_name) + "..."
-            archive = zipfile.ZipFile(selected_path)  # get whl archive
-            for file in archive.namelist():
-                archive.extract(file, maya_script_folder)  # get all files
-
-        # find dependency list
-        name_underscore = selected_name.replace("-", "_")
-        dependencies = []
-        for n in glob.glob(maya_script_folder + "/*"):
-            n = n.replace("\\", "/")
-            if n.endswith(".dist-info"):
-                last_folder = n.split("/")
-                if last_folder[-1].startswith(name_underscore):  # TODO do some additional checks
-                    with open(n + "/METADATA") as f:  # TODO move metadata to its own function..
-                        for x in f.readlines():
-                            if str(x).startswith("Requires-Dist: "):
-                                dependency = str(x).split(": ")[-1].rstrip("\n\r")
-                                dependency = re.sub('[ ()]', '', dependency)
-                                ignore_pkgs = ("PySide2", "maya", "setuptools")
-                                if dependency != "setuptools" and dependency != "maya" and dependency != "PySide2":
-                                    dependencies.append(dependency)
-
-        try:  # try running dependencies
-            for d in dependencies:
-                pkg_resources.require(d)
-                print "Dependencies " + str(d) + " OK."
-        except Exception as e:  # install missing dependencies
-            print "Some of these dependencies are not installed: " + str(d) + ". Installing.. " + str(e)
-            # do some wonky stuff to get the correct path to python executable..
-            maya_exe = sys.executable.split(".")[0] + "py.exe"
-            maya_exe = maya_exe.replace("\\", "/")
-            dependencies_script = "script_loader_install_dependencies.py"
-            dependencies_string  = ""
-            for d in dependencies:
-                dependencies_string += d + " "
-            # instal dependencies command
-            command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \""\
-                      + dependencies_string + "\""
-            os.system('"' + command + '"')
-        self.update_tree()  # update the tree view
-
-    def uninstall_local(self, maya_scripts_folder, name):
-        """
-        Delete folder where script is
-        Args:
-            maya_scripts_folder: path to maya scripts folder
-            name: name of the selected item
-        """
-        # find the actual script folder from top_level.txt
-        name_underscore = name.replace("-", "_")
-        for n in glob.glob(maya_scripts_folder + "/*"):
-            n = n.replace("\\", "/")
-            if n.endswith(".dist-info"):
-                last_folder = n.split("/")
-                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
-                    fo = open(n + "/top_level.txt")
-                    with fo as f:
-                        script_folder = f.readline().rstrip("\r\n")
-                    fo.close()
-
-                    shutil.rmtree(maya_scripts_folder + "/" + script_folder)  # remove the script folder
-                    shutil.rmtree(n)  # remove the dist_info folder
-        self.update_tree()   # update the tree view
-
     def contextMenuEvent(self, selected_path, is_script_item, maya_script_folder):
         """
-        Context menu for treewidget items
+        Context menu for treewidget items.
         Args:
             selected_path: the path of the selected item
             is_script_item: is is a script item?
             maya_script_folder: path to local maya script folder
         """
         b = self.treeWidget.selectedItems()
-        installed = b[0].data(0, 37)
-        outdated = b[0].data(0, 38)
-        name = b[0].data(0,40)
+        installed = b[0].data(0, 37)  # check if marked as installed
+        outdated = b[0].data(0, 38)  # check if marked as outdated
+        name = b[0].data(0,40)  # get name
 
         self.menu = QtWidgets.QMenu(self)
         if not is_script_item: # skip category items
             return
         if installed:
             run_action = QtWidgets.QAction("Run", self)
-            run_action.triggered.connect(lambda: self.launch_script(maya_script_folder, name))
+            run_action.triggered.connect(lambda: ScriptActions.launch_script(maya_script_folder, name))
             self.menu.addAction(run_action)
 
         if installed and outdated:
             install_action = QtWidgets.QAction("Update", self)
-            install_action.triggered.connect(lambda: self.update_local(selected_path, maya_script_folder, name))
+            install_action.triggered.connect(lambda: self.install_actions("update", selected_path, maya_script_folder, name))
             self.menu.addAction(install_action)
 
         if installed:
             uninstall_action = QtWidgets.QAction("Uninstall", self)
-            uninstall_action.triggered.connect(lambda: self.uninstall_local(maya_script_folder, name))
+            uninstall_action.triggered.connect(lambda: self.install_actions("uninstall", selected_path, maya_script_folder, name))
             self.menu.addAction(uninstall_action)
         else:
             install_action = QtWidgets.QAction("Install", self)
-            install_action.triggered.connect(lambda: self.install_local(selected_path, maya_script_folder, name))
+            install_action.triggered.connect(lambda: self.install_actions("install", selected_path, maya_script_folder, name))
             self.menu.addAction(install_action)
         self.menu.popup(QtGui.QCursor.pos())
         self.update_tree()
 
-    def update_local(self, selected_path, maya_script_folder, name):
-        self.uninstall_local(maya_script_folder, name)
-        self.install_local(selected_path, maya_script_folder, name)
+    def install_actions(self, action, selected_path, maya_script_folder, name):
+        """
+        Actions for context menu
+        Args:
+            action: install, uninstall or update
+            selected_path: the selected path
+            maya_script_folder: path to maya scripts folder
+            name: name of the script
+        """
+        if action == "install":
+            ScriptActions.install_local(selected_path, maya_script_folder, name)
+        if action == "uninstall":
+            ScriptActions.uninstall_local(maya_script_folder, name)
+        if action == "update":
+            ScriptActions.uninstall_local(maya_script_folder, name)
+            self.install_local(selected_path, maya_script_folder, name)
         self.update_tree()
 
     @staticmethod
@@ -331,25 +270,6 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
         sel_path = b[0].data(0,32)
         self.my_selected_path = sel_path
         return sel_path
-
-    @staticmethod
-    def launch_script(maya_scripts_folder, name):
-        """
-        Get top_level.txt - run __init__.py file in folder that is specified
-        Args:
-            maya_scripts_folder: path to maya scripts folder
-            name: name of the script
-        """
-        name_underscore = name.replace("-", "_")
-        for n in glob.glob(maya_scripts_folder + "/*"):
-            n = n.replace("\\", "/")
-            if n.endswith(".dist-info"):
-                last_folder = n.split("/")
-                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
-                    with open(n + "/top_level.txt") as f:
-                        x = f.readline().rstrip("\r\n")
-                        print x
-                        imp.load_source('module.name', maya_scripts_folder + "/" + x + "/__init__.py")
 
     @staticmethod
     def create_brushes():
@@ -394,6 +314,8 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
         fonts.append(font_normal)
         return fonts
 
+
+class Logs(QtWidgets.QWidget):
     @staticmethod
     def log_message(message):
         """
@@ -432,6 +354,104 @@ class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
         return answer
 
 
+class ScriptActions():
+    @staticmethod
+    def install_local(selected_path, maya_script_folder, selected_name):
+        """
+        Copy the script to the local maya scripts folder.
+        Args:
+            selected_path: the selected item in the treewidget menu
+            maya_script_folder: path to local maya script folder
+            selected_name: name of the selected item
+        """
+
+        print selected_path
+        whl = str(selected_path).split(".")
+        whl = whl[-1]
+        print whl
+        if whl == "whl":  # check if file is a whl
+            print "Installing " + str(selected_name) + "..."
+            archive = zipfile.ZipFile(selected_path)  # get whl archive
+            for file in archive.namelist():
+                archive.extract(file, maya_script_folder)  # get all files
+
+        # find dependency list
+        name_underscore = selected_name.replace("-", "_")
+        dependencies = []
+        for n in glob.glob(maya_script_folder + "/*"):
+            n = n.replace("\\", "/")
+            if n.endswith(".dist-info"):
+                last_folder = n.split("/")
+                if last_folder[-1].startswith(name_underscore):  # TODO do some additional checks
+                    with open(n + "/METADATA") as f:  # TODO move metadata to its own function..
+                        for x in f.readlines():
+                            if str(x).startswith("Requires-Dist: "):
+                                dependency = str(x).split(": ")[-1].rstrip("\n\r")
+                                dependency = re.sub('[ ()]', '', dependency)
+                                ignore_pkgs = ("PySide2", "maya", "setuptools")
+                                if dependency != "setuptools" and dependency != "maya" and dependency != "PySide2":
+                                    dependencies.append(dependency)
+
+        try:  # try running dependencies
+            for d in dependencies:
+                pkg_resources.require(d)
+                print "Dependencies " + str(d) + " OK."
+        except Exception as e:  # install missing dependencies
+            print "Some of these dependencies are not installed: " + str(d) + ". Installing.. " + str(e)
+            # do some wonky stuff to get the correct path to python executable..
+            maya_exe = sys.executable.split(".")[0] + "py.exe"
+            maya_exe = maya_exe.replace("\\", "/")
+            dependencies_script = "script_loader_install_dependencies.py"
+            dependencies_string  = ""
+            for d in dependencies:
+                dependencies_string += d + " "
+            # instal dependencies command
+            command = "\"" + str(maya_exe) + "\" " + maya_script_folder + "/" + dependencies_script + " \""\
+                      + dependencies_string + "\""
+            os.system('"' + command + '"')
+
+    @staticmethod
+    def uninstall_local(maya_scripts_folder, name):
+        """
+        Delete folder where script is
+        Args:
+            maya_scripts_folder: path to maya scripts folder
+            name: name of the selected item
+        """
+        # find the actual script folder from top_level.txt
+        name_underscore = name.replace("-", "_")
+        for n in glob.glob(maya_scripts_folder + "/*"):
+            n = n.replace("\\", "/")
+            if n.endswith(".dist-info"):
+                last_folder = n.split("/")
+                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
+                    fo = open(n + "/top_level.txt")
+                    with fo as f:
+                        script_folder = f.readline().rstrip("\r\n")
+                    fo.close()
+
+                    shutil.rmtree(maya_scripts_folder + "/" + script_folder)  # remove the script folder
+                    shutil.rmtree(n)  # remove the dist_info folder
+
+    @staticmethod
+    def launch_script(maya_scripts_folder, name):
+        """
+        Get top_level.txt - run __init__.py file in folder that is specified
+        Args:
+            maya_scripts_folder: path to maya scripts folder
+            name: name of the script
+        """
+        name_underscore = name.replace("-", "_")
+        for n in glob.glob(maya_scripts_folder + "/*"):
+            n = n.replace("\\", "/")
+            if n.endswith(".dist-info"):
+                last_folder = n.split("/")
+                if last_folder[-1].startswith(name_underscore):  # TODO check also if top level folder exists
+                    with open(n + "/top_level.txt") as f:
+                        x = f.readline().rstrip("\r\n")
+                        print x
+                        imp.load_source('module.name', maya_scripts_folder + "/" + x + "/__init__.py")
+
 class Database():
     """
     Logic class for script loader TODO: move more stuff here
@@ -468,7 +488,7 @@ class Database():
                 for r, d, f in os.walk(path):
                     for file in f:
                         if '.whl' in file:
-                            whl_files.update({path + "/" + file: category}) # TODO this will break if there are other files?
+                            whl_files.update({path + "/" + file: category})  # TODO check if this will break if there are other files
         return whl_files
 
     @staticmethod
@@ -484,5 +504,32 @@ class Database():
         categories = list(dict.fromkeys(categories))  # remove duplicates
         return categories
 
+    def check_for_duplicates(self):
+        """
+        Check if there are duplicate files in the project
+        Returns:
 
-
+        """
+        db = self.get_folder_contents()
+        db_keys = []
+        # get project name (ignore version number)
+        for key in db:
+            key = str(key).split("/")
+            key = key[-1].split("-")
+            db_keys.append(key[0])
+        # do comparison
+        counter1 = 0
+        duplicates = False
+        for i in db_keys:
+            counter2 = 0
+            for n in db_keys:
+                if counter1 == counter2:  # skip self check
+                    continue
+                if i == n:
+                    duplicates = True
+                counter2 += 1
+            counter1 += 1
+        if duplicates:
+            print "Warning: Duplicate package found! this might cause some issues."
+        else:
+            print "No duplicate packages found."

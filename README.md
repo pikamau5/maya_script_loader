@@ -40,3 +40,7 @@ reload(script_loader_pkg)
 Requirements:
 
 * Pip asdasd
+
+Todo:
+
+* Make resizable / dockable

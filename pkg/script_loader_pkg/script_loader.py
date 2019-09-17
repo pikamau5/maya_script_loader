@@ -30,7 +30,9 @@ import glob
 import re
 from PySide2 import QtWidgets, QtCore, QtGui
 from distutils.version import LooseVersion
-from script_loader_pkg.script_loader_ui import Ui_Form
+import script_loader_pkg.script_loader_ui as script_loader_ui
+reload(script_loader_ui)
+
 import excepthook_override
 import script_loader_pkg.script_loader_config as script_loader_config
 
@@ -39,7 +41,7 @@ ex = excepthook_override.Except()
 ex.run_excepthook(os.path.basename(__file__))
 
 
-class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
+class ScriptLoaderUI(QtWidgets.QWidget, script_loader_ui.Ui_Form):
     """
     Run the script inside maya with a pyqt ui
     """
@@ -48,7 +50,7 @@ class ScriptLoaderUI(QtWidgets.QWidget, Ui_Form):
         init function
         """
         super(ScriptLoaderUI, self).__init__(None)
-        self._ui = Ui_Form()
+        self._ui = script_loader_ui.Ui_Form()
         self._ui.setupUi(self)
         self.database = Database() # load logic class
         self.my_selected_path = ""

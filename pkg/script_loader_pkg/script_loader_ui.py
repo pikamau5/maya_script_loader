@@ -15,7 +15,7 @@ class Ui_Form(object):
 
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(332, 490)
+        Form.setFixedSize(332, 490)
         self.tabWidget = QtWidgets.QTabWidget(Form)
         self.tabWidget.setGeometry(QtCore.QRect(10, 10, 311, 471))
         self.tabWidget.setObjectName("tabWidget")
@@ -58,7 +58,7 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Script Loader", None, -1))
-        self.update_btn.setText(QtWidgets.QApplication.translate("Form", "Reload database", None, -1))
+        self.update_btn.setText(QtWidgets.QApplication.translate("Form", "Reload dbase", None, -1))
         self.treeWidget.setSortingEnabled(False)
         self.treeWidget.headerItem().setText(0, QtWidgets.QApplication.translate("Form", "Tools", None,  -1))
         __sortingEnabled = self.treeWidget.isSortingEnabled()
